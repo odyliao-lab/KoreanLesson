@@ -2210,3 +2210,580 @@ footer p {
     grid-template-columns: 1fr;
   }
 }
+
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 10px;
+  left: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff;
+  color: #090b24;
+  transform: translateY(-150%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #8be5ff;
+  outline-offset: 3px;
+}
+
+.account-pill {
+  max-width: 190px;
+  overflow: hidden;
+  padding: 10px 14px;
+  border: 1px solid rgba(139, 229, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(27, 33, 80, 0.72);
+  color: #dff9ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.learning-stats,
+.coach-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.learning-stats article,
+.coach-summary article {
+  display: grid;
+  gap: 4px;
+  min-height: 122px;
+  align-content: center;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  background: rgba(20, 24, 65, 0.76);
+}
+
+.learning-stats span,
+.coach-summary small,
+.coach-summary span {
+  color: var(--muted);
+}
+
+.learning-stats strong,
+.coach-summary strong {
+  color: #fff;
+  font-size: 1.85rem;
+}
+
+.learning-stats small {
+  color: #9be9ff;
+}
+
+.badge-card {
+  grid-column: span 2;
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.badge-grid .badge {
+  min-height: 118px;
+  align-content: center;
+}
+
+.review-card,
+.guide-team-card,
+.data-tools-card {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 26px;
+  background: rgba(18, 21, 58, 0.8);
+}
+
+.review-card,
+.data-tools-card {
+  padding: 28px;
+}
+
+.review-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.review-list button {
+  display: grid;
+  gap: 7px;
+  min-height: 116px;
+  padding: 16px;
+  border: 1px solid rgba(139, 229, 255, 0.16);
+  border-radius: 18px;
+  background: rgba(31, 37, 86, 0.74);
+  color: #fff;
+  text-align: left;
+}
+
+.review-list span,
+.review-list small,
+.review-list > p {
+  color: var(--muted);
+}
+
+.guide-team-card {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.2fr) minmax(280px, 0.8fr);
+  overflow: hidden;
+}
+
+.guide-team-card img {
+  width: 100%;
+  height: 100%;
+  min-height: 340px;
+  object-fit: cover;
+}
+
+.guide-team-card > div {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  padding: 32px;
+}
+
+.guide-team-card h2,
+.data-tools-card h2 {
+  margin: 0;
+  color: #fff;
+}
+
+.guide-team-card small,
+.data-tools-card p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.guide-role-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.guide-role-list span {
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: rgba(142, 103, 255, 0.15);
+  color: #e5dcff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.data-tools-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.data-tool-actions {
+  display: flex;
+  max-width: 640px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.data-tool-actions button,
+.data-tool-actions label,
+.coach-view button,
+.coach-view a {
+  min-height: 44px;
+  padding: 11px 15px;
+  border: 1px solid rgba(139, 229, 255, 0.24);
+  border-radius: 13px;
+  background: rgba(37, 44, 98, 0.85);
+  color: #e9faff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.data-tool-actions label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.data-tool-actions input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.data-tool-actions .voice-picker {
+  gap: 8px;
+}
+
+.voice-picker select {
+  max-width: 170px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+}
+
+.voice-picker option {
+  background: #151942;
+}
+
+.data-tool-actions .danger-action {
+  border-color: rgba(255, 134, 166, 0.3);
+  color: #ffc4d4;
+}
+
+.coach-view {
+  width: min(1180px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 60px 0 100px;
+}
+
+.signin-panel {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 22px;
+  align-items: center;
+  margin-top: 28px;
+  padding: 28px;
+  border: 1px solid rgba(139, 229, 255, 0.22);
+  border-radius: 26px;
+  background: rgba(20, 24, 65, 0.82);
+}
+
+.signin-panel > span {
+  color: #8be5ff;
+  font-size: 2.2rem;
+}
+
+.signin-panel h2,
+.signin-panel p {
+  margin: 0;
+}
+
+.signin-panel p {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.coach-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.coach-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.profile-role-card,
+.class-action-card,
+.class-board {
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  background: rgba(19, 22, 62, 0.8);
+}
+
+.profile-role-card h2,
+.class-action-card h2,
+.class-board h2 {
+  margin: 0 0 20px;
+  color: #fff;
+}
+
+.profile-role-card > label,
+.class-action-card > label {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  color: var(--muted);
+}
+
+.profile-role-card select,
+.class-action-card input {
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(139, 229, 255, 0.22);
+  border-radius: 13px;
+  background: #12163b;
+  color: #fff;
+  font: inherit;
+}
+
+.profile-role-card > p:last-child {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.class-board {
+  margin-top: 18px;
+}
+
+.class-card {
+  display: grid;
+  grid-template-columns: 130px minmax(180px, 0.7fr) 1fr;
+  gap: 18px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(37, 43, 93, 0.62);
+}
+
+.class-card > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.class-card > div:first-child span,
+.class-card p,
+.roster-list small {
+  color: var(--muted);
+}
+
+.class-card > div:first-child strong {
+  color: #9cecff;
+  font-size: 1.5rem;
+  letter-spacing: 0.12em;
+}
+
+.class-card h3,
+.class-card p {
+  margin: 0;
+}
+
+.class-card h3 {
+  color: #fff;
+}
+
+.roster-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.roster-list > span,
+.membership-list span {
+  display: grid;
+  gap: 2px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.empty-class {
+  color: var(--muted);
+}
+
+.membership-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  color: #dfe5ff;
+}
+
+.assignment-panel,
+.assignment-list {
+  grid-column: 1 / -1;
+}
+
+.assignment-panel {
+  display: grid;
+  grid-template-columns: 1.1fr 150px 90px 160px auto;
+  gap: 9px;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.assignment-panel > strong {
+  grid-column: 1 / -1;
+  color: #fff;
+}
+
+.assignment-panel input,
+.assignment-panel select {
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid rgba(139, 229, 255, 0.18);
+  border-radius: 11px;
+  background: #12163b;
+  color: #fff;
+}
+
+.assignment-list,
+.student-assignments {
+  display: grid;
+  gap: 9px;
+}
+
+.assignment-list span,
+.student-assignments button {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+  text-align: left;
+}
+
+.assignment-list small,
+.student-assignments small,
+.student-assignments span {
+  color: var(--muted);
+}
+
+.student-assignments {
+  margin-top: 18px;
+}
+
+.student-assignments h3 {
+  margin: 0;
+  color: #fff;
+}
+
+.privacy-page {
+  width: min(820px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 70px 0 110px;
+  color: #e9ecff;
+}
+
+.privacy-page > a:first-child {
+  color: #9be9ff;
+  text-decoration: none;
+}
+
+.privacy-page h1 {
+  margin: 16px 0 34px;
+  color: #fff;
+  font-size: clamp(2.2rem, 6vw, 4.5rem);
+}
+
+.privacy-page section {
+  margin-bottom: 14px;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  background: rgba(18, 21, 58, 0.78);
+}
+
+.privacy-page h2 {
+  margin: 0 0 9px;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.privacy-page p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.privacy-return {
+  display: inline-flex;
+  margin-top: 18px;
+  text-decoration: none;
+}
+
+.footer-links {
+  display: flex;
+  gap: 14px;
+}
+
+.footer-links a {
+  color: #aeefff;
+}
+
+.high-contrast {
+  --muted: #e5e8ff;
+}
+
+.high-contrast .lesson-card,
+.high-contrast .level-card,
+.high-contrast .day-node,
+.high-contrast .journal-grid article {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 980px) {
+  .learning-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .badge-grid,
+  .review-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guide-team-card {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-team-card img {
+    max-height: 480px;
+  }
+
+  .data-tools-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .data-tool-actions {
+    justify-content: flex-start;
+  }
+
+  .class-card {
+    grid-template-columns: 1fr;
+  }
+
+  .assignment-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .topbar nav button:nth-child(4) {
+    display: none;
+  }
+
+  .account-pill {
+    max-width: 110px;
+    font-size: 0.7rem;
+  }
+
+  .coach-summary,
+  .coach-grid,
+  .signin-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .badge-grid,
+  .review-list {
+    grid-template-columns: 1fr;
+  }
+}

@@ -3,6 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://korean.odyliao.cc"),
+  manifest: "/manifest.webmanifest",
   title: "별빛韓語研究所｜Starlight Korean Lab",
   description:
     "為國中生打造的 50 天互動韓語學習星圖，涵蓋初級、中級與高級三階段，每天 45–60 分鐘，支援韓語語音與 iPad 觸控操作。",

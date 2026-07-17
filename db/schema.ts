@@ -1,4 +1,40 @@
-// Intentionally empty by default.
-// Add Drizzle tables here when the site actually needs a database.
-// See examples/d1/db/schema.ts for an opt-in example.
-export {};
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const learningProfiles = sqliteTable("learning_profiles", {
+  email: text("email").primaryKey(),
+  displayName: text("display_name").notNull(),
+  role: text("role").notNull().default("student"),
+  classCode: text("class_code"),
+  payload: text("payload").notNull().default("{}"),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const classes = sqliteTable("classes", {
+  code: text("code").primaryKey(),
+  name: text("name").notNull(),
+  ownerEmail: text("owner_email").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const classMembers = sqliteTable(
+  "class_members",
+  {
+    classCode: text("class_code").notNull(),
+    email: text("email").notNull(),
+    displayName: text("display_name").notNull(),
+    role: text("role").notNull().default("student"),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.classCode, table.email] })],
+);
+
+export const assignments = sqliteTable("assignments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  classCode: text("class_code").notNull(),
+  title: text("title").notNull(),
+  level: text("level").notNull(),
+  day: integer("day").notNull(),
+  dueDate: text("due_date").notNull(),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});

@@ -7,8 +7,46 @@ import {
 } from "./intermediate-lessons";
 import { advancedDayTitles, advancedLessons } from "./advanced-lessons";
 
-type View = "home" | "map" | "journal" | "lesson";
+type View = "home" | "map" | "journal" | "lesson" | "coach";
 type Level = "beginner" | "intermediate" | "advanced";
+
+type StudySession = {
+  key: string;
+  level: Level;
+  day: number;
+  completedAt: string;
+  minutes: number;
+};
+
+type SessionUser = {
+  displayName: string;
+  email: string;
+};
+
+type CloudClass = {
+  code: string;
+  name: string;
+  ownerEmail: string;
+  members?: {
+    email: string;
+    displayName: string;
+    role: string;
+    progress?: number;
+    minutes?: number;
+    mistakes?: number;
+    lastActive?: string | null;
+  }[];
+  assignments?: ClassAssignment[];
+};
+
+type ClassAssignment = {
+  id: number;
+  classCode: string;
+  title: string;
+  level: Level;
+  day: number;
+  dueDate: string;
+};
 
 type Lesson = {
   day: number;
@@ -786,6 +824,35 @@ export default function Home() {
   const [mistakes, setMistakes] = useState<Record<string, number>>({});
   const [showCardHints, setShowCardHints] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [completionDates, setCompletionDates] = useState<
+    Record<string, string>
+  >({});
+  const [studySessions, setStudySessions] = useState<StudySession[]>([]);
+  const [user, setUser] = useState<SessionUser | null>(null);
+  const [syncStatus, setSyncStatus] = useState(
+    "免登入模式：資料保存在這台裝置",
+  );
+  const [profileRole, setProfileRole] = useState<
+    "student" | "teacher" | "parent"
+  >("student");
+  const [classCode, setClassCode] = useState("");
+  const [className, setClassName] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const [ownedClasses, setOwnedClasses] = useState<CloudClass[]>([]);
+  const [memberships, setMemberships] = useState<
+    { classCode: string; role: string }[]
+  >([]);
+  const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
+  const [assignmentTitle, setAssignmentTitle] = useState("");
+  const [assignmentLevel, setAssignmentLevel] =
+    useState<Level>("beginner");
+  const [assignmentDay, setAssignmentDay] = useState(1);
+  const [assignmentDueDate, setAssignmentDueDate] = useState("");
+  const [highContrast, setHighContrast] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<
+    SpeechSynthesisVoice[]
+  >([]);
+  const [preferredVoiceName, setPreferredVoiceName] = useState("");
   const [timerSeconds, setTimerSeconds] = useState(15 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -801,6 +868,20 @@ export default function Home() {
       );
       const savedNotes = localStorage.getItem("starlight-korean-notes");
       const savedMistakes = localStorage.getItem("starlight-korean-mistakes");
+      const savedDates = localStorage.getItem(
+        "starlight-korean-completion-dates",
+      );
+      const savedSessions = localStorage.getItem(
+        "starlight-korean-study-sessions",
+      );
+      const savedContrast = localStorage.getItem(
+        "starlight-korean-high-contrast",
+      );
+      const savedRole = localStorage.getItem("starlight-korean-profile-role");
+      const savedClassCode = localStorage.getItem(
+        "starlight-korean-class-code",
+      );
+      const savedVoice = localStorage.getItem("starlight-korean-voice");
       if (saved) setCompletedDays(JSON.parse(saved));
       if (savedIntermediate)
         setCompletedIntermediateDays(JSON.parse(savedIntermediate));
@@ -808,10 +889,52 @@ export default function Home() {
         setCompletedAdvancedDays(JSON.parse(savedAdvanced));
       if (savedNotes) setNotes(JSON.parse(savedNotes));
       if (savedMistakes) setMistakes(JSON.parse(savedMistakes));
+      if (savedDates) setCompletionDates(JSON.parse(savedDates));
+      if (savedSessions) setStudySessions(JSON.parse(savedSessions));
+      if (savedContrast === "true") setHighContrast(true);
+      if (savedRole && ["student", "teacher", "parent"].includes(savedRole))
+        setProfileRole(savedRole as "student" | "teacher" | "parent");
+      if (savedClassCode) setClassCode(savedClassCode);
+      if (savedVoice) setPreferredVoiceName(savedVoice);
     } catch {
       // The course remains usable when browser storage is unavailable.
     }
     setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/session")
+      .then((response) => response.json())
+      .then((data: { user?: SessionUser | null }) => {
+        if (data.user) {
+          setUser(data.user);
+          setSyncStatus(`已登入：${data.user.displayName}`);
+        }
+      })
+      .catch(() => {
+        // Anonymous local mode remains fully usable.
+      });
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js").catch(() => {
+        // Offline installation is an enhancement, not a learning blocker.
+      });
+    }
+    if ("speechSynthesis" in window) {
+      const updateVoices = () =>
+        setAvailableVoices(
+          window.speechSynthesis
+            .getVoices()
+            .filter((voice) => voice.lang.toLowerCase().startsWith("ko")),
+        );
+      updateVoices();
+      window.speechSynthesis.addEventListener("voiceschanged", updateVoices);
+      return () =>
+        window.speechSynthesis.removeEventListener(
+          "voiceschanged",
+          updateVoices,
+        );
+    }
   }, []);
 
   useEffect(() => {
@@ -833,12 +956,33 @@ export default function Home() {
       "starlight-korean-mistakes",
       JSON.stringify(mistakes),
     );
+    localStorage.setItem(
+      "starlight-korean-completion-dates",
+      JSON.stringify(completionDates),
+    );
+    localStorage.setItem(
+      "starlight-korean-study-sessions",
+      JSON.stringify(studySessions),
+    );
+    localStorage.setItem(
+      "starlight-korean-high-contrast",
+      String(highContrast),
+    );
+    localStorage.setItem("starlight-korean-profile-role", profileRole);
+    localStorage.setItem("starlight-korean-class-code", classCode);
+    localStorage.setItem("starlight-korean-voice", preferredVoiceName);
   }, [
     completedDays,
     completedIntermediateDays,
     completedAdvancedDays,
     notes,
     mistakes,
+    completionDates,
+    studySessions,
+    highContrast,
+    profileRole,
+    classCode,
+    preferredVoiceName,
     hydrated,
   ]);
 
@@ -850,6 +994,10 @@ export default function Home() {
     );
     return () => window.clearInterval(timer);
   }, [timerRunning, timerSeconds]);
+
+  useEffect(() => {
+    if (view === "coach" && user) void refreshClasses();
+  }, [view, user]);
 
   const completedByLevel: Record<Level, number[]> = {
     beginner: completedDays,
@@ -910,6 +1058,79 @@ export default function Home() {
     .filter(([key, count]) => key.startsWith(`${activeLevel}-`) && count > 0)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 4);
+  const totalMinutes = studySessions.reduce(
+    (total, session) => total + session.minutes,
+    0,
+  );
+  const sessionDates = Array.from(
+    new Set(studySessions.map((session) => session.completedAt.slice(0, 10))),
+  ).sort((a, b) => b.localeCompare(a));
+  let streak = 0;
+  if (sessionDates.length) {
+    const cursor = new Date();
+    const newest = new Date(`${sessionDates[0]}T00:00:00`);
+    const todayGap = Math.floor(
+      (cursor.getTime() - newest.getTime()) / 86_400_000,
+    );
+    if (todayGap <= 1) {
+      cursor.setHours(0, 0, 0, 0);
+      if (todayGap === 1) cursor.setDate(cursor.getDate() - 1);
+      for (const date of sessionDates) {
+        if (date !== cursor.toISOString().slice(0, 10)) break;
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+      }
+    }
+  }
+  const reviewSchedule = [1, 3, 7, 14];
+  const dueReviews = Object.entries(completionDates)
+    .map(([key, date]) => {
+      const [level, dayText] = key.split("-");
+      const age = Math.floor(
+        (Date.now() - new Date(date).getTime()) / 86_400_000,
+      );
+      return {
+        key,
+        level: level as Level,
+        day: Number(dayText),
+        age,
+        due: reviewSchedule.includes(age) || (mistakes[key] ?? 0) > 0,
+      };
+    })
+    .filter((item) => item.due)
+    .slice(0, 6);
+  const earnedBadges = [
+    {
+      name: "第一道星光",
+      earned: studySessions.length >= 1,
+      hint: "完成第一課",
+    },
+    {
+      name: "五日練習生",
+      earned: studySessions.length >= 5,
+      hint: "完成五次學習",
+    },
+    {
+      name: "連續七日",
+      earned: streak >= 7,
+      hint: "連續學習七天",
+    },
+    {
+      name: "錯題修復師",
+      earned: Object.values(mistakes).some((count) => count >= 2),
+      hint: "勇敢重練錯題",
+    },
+    {
+      name: "初級出發",
+      earned: beginnerProgress === 100,
+      hint: "完成初級",
+    },
+    {
+      name: "正式出道",
+      earned: advancedProgress === 100,
+      hint: "完成三階段",
+    },
+  ];
   const timerLabel = `${String(Math.floor(timerSeconds / 60)).padStart(
     2,
     "0",
@@ -957,18 +1178,42 @@ export default function Home() {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "ko-KR";
+    const voice =
+      availableVoices.find((item) => item.name === preferredVoiceName) ??
+      availableVoices[0];
+    if (voice) utterance.voice = voice;
     utterance.rate = slow ? 0.62 : 0.88;
     utterance.pitch = 1;
     window.speechSynthesis.speak(utterance);
   }
 
   function completeLesson() {
+    const key = `${activeLevel}-${activeDay}`;
+    const completedAt = new Date().toISOString();
+    const estimatedMinutes = Math.min(
+      60,
+      Math.max(45, 45 + Math.round((15 * 60 - timerSeconds) / 60)),
+    );
     const update = (days: number[]) =>
       days.includes(activeDay) ? days : [...days, activeDay];
     if (activeLevel === "beginner") setCompletedDays(update);
     else if (activeLevel === "intermediate")
       setCompletedIntermediateDays(update);
     else setCompletedAdvancedDays(update);
+    setCompletionDates((current) => ({
+      ...current,
+      [key]: current[key] ?? completedAt,
+    }));
+    setStudySessions((current) => [
+      {
+        key: `${key}-${completedAt}`,
+        level: activeLevel,
+        day: activeDay,
+        completedAt,
+        minutes: estimatedMinutes,
+      },
+      ...current,
+    ].slice(0, 300));
     navigate(activeDay === activeLessons.length ? "journal" : "map");
   }
 
@@ -998,8 +1243,242 @@ export default function Home() {
     setActiveStage(3);
   }
 
+  function learningPayload() {
+    return {
+      version: 2,
+      completedDays,
+      completedIntermediateDays,
+      completedAdvancedDays,
+      notes,
+      mistakes,
+      completionDates,
+      studySessions,
+    };
+  }
+
+  function applyLearningPayload(data: Record<string, unknown>) {
+    if (Array.isArray(data.completedDays))
+      setCompletedDays(data.completedDays as number[]);
+    if (Array.isArray(data.completedIntermediateDays))
+      setCompletedIntermediateDays(data.completedIntermediateDays as number[]);
+    if (Array.isArray(data.completedAdvancedDays))
+      setCompletedAdvancedDays(data.completedAdvancedDays as number[]);
+    if (data.notes && typeof data.notes === "object")
+      setNotes(data.notes as Record<string, string>);
+    if (data.mistakes && typeof data.mistakes === "object")
+      setMistakes(data.mistakes as Record<string, number>);
+    if (data.completionDates && typeof data.completionDates === "object")
+      setCompletionDates(data.completionDates as Record<string, string>);
+    if (Array.isArray(data.studySessions))
+      setStudySessions(data.studySessions as StudySession[]);
+  }
+
+  function exportLearningData() {
+    const blob = new Blob([JSON.stringify(learningPayload(), null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `starlight-korean-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importLearningData(file: File | undefined) {
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text()) as Record<string, unknown>;
+      applyLearningPayload(data);
+      setSyncStatus("學習資料已成功匯入這台裝置");
+    } catch {
+      setSyncStatus("匯入失敗：請選擇由本站匯出的 JSON 檔案");
+    }
+  }
+
+  function resetCurrentLevel() {
+    if (!window.confirm(`確定要重設${levelMeta[activeLevel].shortName}進度嗎？`))
+      return;
+    if (activeLevel === "beginner") setCompletedDays([]);
+    else if (activeLevel === "intermediate") setCompletedIntermediateDays([]);
+    else setCompletedAdvancedDays([]);
+    setCompletionDates((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(
+          ([key]) => !key.startsWith(`${activeLevel}-`),
+        ),
+      ),
+    );
+    setSyncStatus(`${levelMeta[activeLevel].shortName}進度已重設`);
+  }
+
+  async function syncToCloud() {
+    if (!user) {
+      window.location.href = "/signin-with-chatgpt?return_to=%2F";
+      return;
+    }
+    setSyncStatus("正在同步到雲端…");
+    const response = await fetch("/api/sync", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        data: learningPayload(),
+        role: profileRole,
+        classCode,
+      }),
+    });
+    const result = (await response.json()) as { error?: string };
+    setSyncStatus(
+      response.ok ? "雲端同步完成，可在其他裝置接續學習" : result.error ?? "同步失敗",
+    );
+  }
+
+  async function loadFromCloud() {
+    if (!user) {
+      window.location.href = "/signin-with-chatgpt?return_to=%2F";
+      return;
+    }
+    setSyncStatus("正在讀取雲端進度…");
+    const response = await fetch("/api/sync");
+    const result = (await response.json()) as {
+      error?: string;
+      profile?: {
+        data?: Record<string, unknown>;
+        role?: "student" | "teacher" | "parent";
+        classCode?: string;
+      } | null;
+    };
+    if (response.ok && result.profile?.data) {
+      applyLearningPayload(result.profile.data);
+      if (result.profile.role) setProfileRole(result.profile.role);
+      if (result.profile.classCode) setClassCode(result.profile.classCode);
+      setSyncStatus("已載入雲端進度");
+    } else {
+      setSyncStatus(result.error ?? "目前沒有雲端進度");
+    }
+  }
+
+  async function refreshClasses() {
+    if (!user) return;
+    const response = await fetch("/api/classes");
+    const result = (await response.json()) as {
+      owned?: CloudClass[];
+      memberships?: { classCode: string; role: string }[];
+      assignments?: ClassAssignment[];
+      error?: string;
+    };
+    if (response.ok) {
+      setOwnedClasses(result.owned ?? []);
+      setMemberships(result.memberships ?? []);
+      setAssignments(result.assignments ?? []);
+    } else {
+      setSyncStatus(result.error ?? "無法讀取班級");
+    }
+  }
+
+  async function createClass() {
+    const response = await fetch("/api/classes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "create", name: className }),
+    });
+    const result = (await response.json()) as { code?: string; error?: string };
+    if (response.ok) {
+      setClassCode(result.code ?? "");
+      setProfileRole("teacher");
+      setClassName("");
+      setSyncStatus(`班級建立完成，邀請碼：${result.code}`);
+      await refreshClasses();
+    } else setSyncStatus(result.error ?? "建立班級失敗");
+  }
+
+  async function joinClass() {
+    const response = await fetch("/api/classes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "join",
+        code: joinCode,
+        role: profileRole === "parent" ? "parent" : "student",
+      }),
+    });
+    const result = (await response.json()) as { code?: string; error?: string };
+    if (response.ok) {
+      setClassCode(result.code ?? joinCode.toUpperCase());
+      setJoinCode("");
+      setSyncStatus("已加入班級");
+      await refreshClasses();
+    } else setSyncStatus(result.error ?? "加入班級失敗");
+  }
+
+  async function createAssignment(code: string) {
+    const response = await fetch("/api/classes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        action: "assign",
+        code,
+        title: assignmentTitle,
+        level: assignmentLevel,
+        day: assignmentDay,
+        dueDate: assignmentDueDate,
+      }),
+    });
+    const result = (await response.json()) as { error?: string };
+    if (response.ok) {
+      setAssignmentTitle("");
+      setSyncStatus("課程指派完成");
+      await refreshClasses();
+    } else setSyncStatus(result.error ?? "指派失敗");
+  }
+
+  function exportClassReport(course: CloudClass) {
+    const rows = [
+      ["姓名", "身分", "完成率", "學習分鐘", "錯題次數", "最後活動"],
+      ...(course.members ?? []).map((member) => [
+        member.displayName,
+        member.role,
+        `${member.progress ?? 0}%`,
+        String(member.minutes ?? 0),
+        String(member.mistakes ?? 0),
+        member.lastActive?.slice(0, 10) ?? "",
+      ]),
+    ];
+    const csv = rows
+      .map((row) => row.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${course.name}-學習報告.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function resetCurrentLesson() {
+    if (!window.confirm(`確定要重設 Day ${activeDay} 的完成與錯題紀錄嗎？`))
+      return;
+    const key = `${activeLevel}-${activeDay}`;
+    const removeDay = (days: number[]) => days.filter((day) => day !== activeDay);
+    if (activeLevel === "beginner") setCompletedDays(removeDay);
+    else if (activeLevel === "intermediate")
+      setCompletedIntermediateDays(removeDay);
+    else setCompletedAdvancedDays(removeDay);
+    setCompletionDates((current) =>
+      Object.fromEntries(Object.entries(current).filter(([item]) => item !== key)),
+    );
+    setMistakes((current) =>
+      Object.fromEntries(Object.entries(current).filter(([item]) => item !== key)),
+    );
+    setSyncStatus(`${levelMeta[activeLevel].shortName} Day ${activeDay} 已重設`);
+  }
+
   return (
-    <div className="site-shell">
+    <div className={`site-shell ${highContrast ? "high-contrast" : ""}`}>
+      <a className="skip-link" href="#main-content">
+        跳到主要內容
+      </a>
       <div className="aurora aurora-one" aria-hidden="true" />
       <div className="aurora aurora-two" aria-hidden="true" />
       <div className="star-field" aria-hidden="true" />
@@ -1031,13 +1510,25 @@ export default function Home() {
           >
             我的手帳
           </button>
+          <button
+            className={view === "coach" ? "nav-active" : ""}
+            onClick={() => navigate("coach")}
+          >
+            教學管理
+          </button>
         </nav>
-        <button className="progress-pill" onClick={() => navigate("journal")}>
-          <span>✦</span> {progress}%
-        </button>
+        {user ? (
+          <a className="account-pill" href="/signout-with-chatgpt?return_to=%2F">
+            {user.displayName} · 登出
+          </a>
+        ) : (
+          <a className="account-pill" href="/signin-with-chatgpt?return_to=%2F">
+            登入同步
+          </a>
+        )}
       </header>
 
-      <main>
+      <main id="main-content">
         {view === "home" && (
           <div className="home-view">
             <section className="hero">
@@ -1322,7 +1813,31 @@ export default function Home() {
             <div className="page-intro">
               <p className="eyebrow">MY STARDUST JOURNAL</p>
               <h1>我的星光手帳</h1>
-              <p>所有進度與筆記都只保存在這台裝置，不需要登入。</p>
+              <p>
+                免登入時保存在這台裝置；登入後可手動同步到雲端，在其他裝置接續學習。
+              </p>
+            </div>
+            <div className="learning-stats" aria-label="學習統計">
+              <article>
+                <span>累積學習</span>
+                <strong>{totalMinutes}</strong>
+                <small>分鐘</small>
+              </article>
+              <article>
+                <span>連續學習</span>
+                <strong>{streak}</strong>
+                <small>天</small>
+              </article>
+              <article>
+                <span>完成課次</span>
+                <strong>{studySessions.length}</strong>
+                <small>次</small>
+              </article>
+              <article>
+                <span>今日複習</span>
+                <strong>{dueReviews.length}</strong>
+                <small>課</small>
+              </article>
             </div>
             <div className="journal-grid">
               <article className="journal-summary">
@@ -1340,17 +1855,18 @@ export default function Home() {
                 </div>
               </article>
               <article className="badge-card">
-                <p>已取得徽章</p>
-                <div className={activeCompleted.length ? "badge earned" : "badge"}>
-                  <span>✦</span>
-                  <strong>
-                    {activeLevel === "beginner"
-                      ? "第一道星光"
-                      : activeLevel === "intermediate"
-                        ? "彩排開始"
-                        : "聚光燈亮起"}
-                  </strong>
-                  <small>完成本階段第一天後取得</small>
+                <p>成就徽章</p>
+                <div className="badge-grid">
+                  {earnedBadges.map((badge) => (
+                    <div
+                      key={badge.name}
+                      className={badge.earned ? "badge earned" : "badge"}
+                    >
+                      <span>{badge.earned ? "✦" : "◇"}</span>
+                      <strong>{badge.name}</strong>
+                      <small>{badge.hint}</small>
+                    </div>
+                  ))}
                 </div>
               </article>
               <article className="notes-card">
@@ -1403,7 +1919,358 @@ export default function Home() {
                   </p>
                 )}
               </article>
+              <article className="review-card">
+                <div className="mistake-card-head">
+                  <div>
+                    <p>間隔複習</p>
+                    <h2>完成後第 1、3、7、14 天回來看一次</h2>
+                  </div>
+                  <span>{dueReviews.length} 課</span>
+                </div>
+                <div className="review-list">
+                  {dueReviews.length ? (
+                    dueReviews.map((item) => (
+                      <button
+                        key={item.key}
+                        onClick={() => openLesson(item.day, item.level)}
+                      >
+                        <span>{levelMeta[item.level].shortName}</span>
+                        <strong>
+                          Day {item.day} · {getLevelTitles(item.level)[item.day - 1]}
+                        </strong>
+                        <small>
+                          {item.age} 天前完成
+                          {(mistakes[item.key] ?? 0) > 0 ? " · 含錯題" : ""}
+                        </small>
+                      </button>
+                    ))
+                  ) : (
+                    <p>目前沒有到期複習，完成新課後會自動排入。</p>
+                  )}
+                </div>
+              </article>
+              <article className="guide-team-card">
+                <img
+                  src="/study-guides-team-v1.webp"
+                  alt="五位原創男性 Q 版韓語學習嚮導在星空觀測室合照"
+                />
+                <div>
+                  <p className="card-kicker">ORIGINAL STUDY GUIDES</p>
+                  <h2>五位嚮導，各自守護一種能力</h2>
+                  <div className="guide-role-list">
+                    <span>루미 · 發音</span>
+                    <span>하루 · 文法</span>
+                    <span>별 · 聽力</span>
+                    <span>누리 · 複習</span>
+                    <span>온 · 自習</span>
+                  </div>
+                  <small>
+                    角色皆為原創虛構人物，與任何真實藝人、團體或娛樂公司無關。
+                  </small>
+                </div>
+              </article>
+              <article className="data-tools-card">
+                <div>
+                  <p className="card-kicker">DATA & ACCESSIBILITY</p>
+                  <h2>資料管理與閱讀設定</h2>
+                  <p>{syncStatus}</p>
+                </div>
+                <div className="data-tool-actions">
+                  <label className="voice-picker">
+                    韓語聲音
+                    <select
+                      value={preferredVoiceName}
+                      onChange={(event) =>
+                        setPreferredVoiceName(event.target.value)
+                      }
+                    >
+                      <option value="">裝置預設</option>
+                      {availableVoices.map((voice) => (
+                        <option key={voice.name} value={voice.name}>
+                          {voice.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button onClick={exportLearningData}>匯出學習資料</button>
+                  <label>
+                    匯入學習資料
+                    <input
+                      type="file"
+                      accept="application/json"
+                      onChange={(event) =>
+                        void importLearningData(event.target.files?.[0])
+                      }
+                    />
+                  </label>
+                  <button onClick={syncToCloud}>
+                    {user ? "同步到雲端" : "登入並同步"}
+                  </button>
+                  {user && <button onClick={loadFromCloud}>載入雲端進度</button>}
+                  <button
+                    aria-pressed={highContrast}
+                    onClick={() => setHighContrast((enabled) => !enabled)}
+                  >
+                    {highContrast ? "關閉高對比" : "開啟高對比"}
+                  </button>
+                  <button className="danger-action" onClick={resetCurrentLesson}>
+                    重設目前 Day {activeDay}
+                  </button>
+                  <button className="danger-action" onClick={resetCurrentLevel}>
+                    重設目前階段
+                  </button>
+                </div>
+              </article>
             </div>
+          </section>
+        )}
+
+        {view === "coach" && (
+          <section className="coach-view">
+            <div className="page-intro">
+              <p className="eyebrow">LEARNING SUPPORT CENTER</p>
+              <h1>教學與家庭陪伴中心</h1>
+              <p>
+                建立班級、使用邀請碼加入，並用簡潔報告了解學習進度。學生筆記不會出現在班級名單中。
+              </p>
+            </div>
+
+            {!user ? (
+              <article className="signin-panel">
+                <span>✦</span>
+                <div>
+                  <h2>登入後使用班級與跨裝置功能</h2>
+                  <p>公開課程與本機進度不需登入，登入只用於自願同步與班級管理。</p>
+                </div>
+                <a href="/signin-with-chatgpt?return_to=%2F">使用 ChatGPT 登入</a>
+              </article>
+            ) : (
+              <>
+                <div className="coach-summary">
+                  <article>
+                    <small>目前帳號</small>
+                    <strong>{user.displayName}</strong>
+                    <span>{user.email}</span>
+                  </article>
+                  <article>
+                    <small>學習完成</small>
+                    <strong>
+                      {completedDays.length +
+                        completedIntermediateDays.length +
+                        completedAdvancedDays.length}{" "}
+                      / 50
+                    </strong>
+                    <span>累積 {totalMinutes} 分鐘</span>
+                  </article>
+                  <article>
+                    <small>需複習</small>
+                    <strong>{dueReviews.length} 課</strong>
+                    <span>連續 {streak} 天</span>
+                  </article>
+                </div>
+
+                <div className="coach-grid">
+                  <article className="profile-role-card">
+                    <p className="card-kicker">PROFILE</p>
+                    <h2>選擇使用身分</h2>
+                    <label>
+                      <span>我是</span>
+                      <select
+                        value={profileRole}
+                        onChange={(event) =>
+                          setProfileRole(
+                            event.target.value as
+                              | "student"
+                              | "teacher"
+                              | "parent",
+                          )
+                        }
+                      >
+                        <option value="student">學生</option>
+                        <option value="teacher">教師</option>
+                        <option value="parent">家長</option>
+                      </select>
+                    </label>
+                    <button onClick={syncToCloud}>保存身分與進度</button>
+                    <p>{syncStatus}</p>
+                  </article>
+
+                  {profileRole === "teacher" ? (
+                    <article className="class-action-card">
+                      <p className="card-kicker">CREATE CLASS</p>
+                      <h2>建立新的韓語班級</h2>
+                      <label>
+                        <span>班級名稱</span>
+                        <input
+                          value={className}
+                          onChange={(event) => setClassName(event.target.value)}
+                          placeholder="例如：星光韓語七年一班"
+                          maxLength={40}
+                        />
+                      </label>
+                      <button onClick={createClass}>建立並產生邀請碼</button>
+                    </article>
+                  ) : (
+                    <article className="class-action-card">
+                      <p className="card-kicker">JOIN CLASS</p>
+                      <h2>使用邀請碼加入班級</h2>
+                      <label>
+                        <span>六碼班級代碼</span>
+                        <input
+                          value={joinCode}
+                          onChange={(event) =>
+                            setJoinCode(event.target.value.toUpperCase())
+                          }
+                          placeholder="ABC234"
+                          maxLength={12}
+                        />
+                      </label>
+                      <button onClick={joinClass}>加入班級</button>
+                    </article>
+                  )}
+                </div>
+
+                <div className="class-board">
+                  <div className="section-heading">
+                    <div>
+                      <p className="eyebrow">CLASS OVERVIEW</p>
+                      <h2>班級與成員</h2>
+                    </div>
+                    <button onClick={refreshClasses}>重新整理</button>
+                  </div>
+                  {ownedClasses.map((course) => (
+                    <article className="class-card" key={course.code}>
+                      <div>
+                        <span>邀請碼</span>
+                        <strong>{course.code}</strong>
+                        <button onClick={() => exportClassReport(course)}>
+                          匯出報告
+                        </button>
+                      </div>
+                      <div>
+                        <h3>{course.name}</h3>
+                        <p>{course.members?.length ?? 0} 位成員</p>
+                      </div>
+                      <div className="roster-list">
+                        {course.members?.map((member) => (
+                          <span key={member.email}>
+                            <strong>{member.displayName}</strong>
+                            <small>
+                              {member.role === "teacher"
+                                ? "教師"
+                                : member.role === "parent"
+                                  ? "家長"
+                                  : "學生"}
+                            </small>
+                            {member.role === "student" && (
+                              <small>
+                                {member.progress ?? 0}% · {member.minutes ?? 0}{" "}
+                                分鐘 · 錯題 {member.mistakes ?? 0}
+                              </small>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="assignment-panel">
+                        <strong>指派課程</strong>
+                        <input
+                          value={assignmentTitle}
+                          onChange={(event) =>
+                            setAssignmentTitle(event.target.value)
+                          }
+                          placeholder="任務名稱（選填）"
+                        />
+                        <select
+                          value={assignmentLevel}
+                          onChange={(event) => {
+                            const level = event.target.value as Level;
+                            setAssignmentLevel(level);
+                            setAssignmentDay(1);
+                          }}
+                        >
+                          <option value="beginner">初級</option>
+                          <option value="intermediate">中級</option>
+                          <option value="advanced">高級</option>
+                        </select>
+                        <input
+                          type="number"
+                          min={1}
+                          max={assignmentLevel === "beginner" ? 20 : 15}
+                          value={assignmentDay}
+                          onChange={(event) =>
+                            setAssignmentDay(Number(event.target.value))
+                          }
+                          aria-label="指派課程天數"
+                        />
+                        <input
+                          type="date"
+                          value={assignmentDueDate}
+                          onChange={(event) =>
+                            setAssignmentDueDate(event.target.value)
+                          }
+                          aria-label="截止日期"
+                        />
+                        <button onClick={() => createAssignment(course.code)}>
+                          指派
+                        </button>
+                      </div>
+                      {!!course.assignments?.length && (
+                        <div className="assignment-list">
+                          {course.assignments.map((assignment) => (
+                            <span key={assignment.id}>
+                              <strong>{assignment.title}</strong>
+                              <small>
+                                {levelMeta[assignment.level].shortName} Day{" "}
+                                {assignment.day} · {assignment.dueDate} 截止
+                              </small>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                  {!ownedClasses.length && !memberships.length && (
+                    <p className="empty-class">
+                      尚未建立或加入班級。班級只顯示成員名稱與身分，不會公開自習筆記。
+                    </p>
+                  )}
+                  {!!memberships.length && (
+                    <div className="membership-list">
+                      {memberships.map((membership) => (
+                        <span key={`${membership.classCode}-${membership.role}`}>
+                          班級 {membership.classCode} ·{" "}
+                          {membership.role === "teacher"
+                            ? "教師"
+                            : membership.role === "parent"
+                              ? "家長"
+                              : "學生"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {!!assignments.length && (
+                    <div className="student-assignments">
+                      <h3>老師指派的任務</h3>
+                      {assignments.map((assignment) => (
+                        <button
+                          key={assignment.id}
+                          onClick={() =>
+                            openLesson(assignment.day, assignment.level)
+                          }
+                        >
+                          <span>{assignment.dueDate} 截止</span>
+                          <strong>{assignment.title}</strong>
+                          <small>
+                            {levelMeta[assignment.level].shortName} Day{" "}
+                            {assignment.day} · 開始任務 →
+                          </small>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </section>
         )}
 
@@ -1784,6 +2651,12 @@ export default function Home() {
         <p>
           原創學習角色與視覺世界觀，非任何藝人或娛樂公司的官方網站。
         </p>
+        <div className="footer-links">
+          <a href="/privacy">隱私與資料說明</a>
+          <a href="mailto:odyliao@gmail.com?subject=韓語研究所問題回報">
+            問題回報
+          </a>
+        </div>
       </footer>
     </div>
   );
