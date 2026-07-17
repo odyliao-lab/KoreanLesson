@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  intermediateDayTitles,
+  intermediateLessons,
+} from "./intermediate-lessons";
 
 type View = "home" | "map" | "journal" | "lesson";
+type Level = "beginner" | "intermediate";
 
 type Lesson = {
   day: number;
@@ -15,12 +20,12 @@ type Lesson = {
   guideColor: string;
   teachingTitle: string;
   teachingCopy: string;
-  sounds: { char: string; label: string; hint: string }[];
+  sounds: readonly { char: string; label: string; hint: string }[];
   question: string;
-  options: string[];
+  options: readonly string[];
   answer: string;
   listenText: string;
-  mission: string[];
+  mission: readonly string[];
 };
 
 const lessons: Lesson[] = [
@@ -642,11 +647,15 @@ const stages = [
 
 export default function Home() {
   const [view, setView] = useState<View>("home");
+  const [activeLevel, setActiveLevel] = useState<Level>("beginner");
   const [activeDay, setActiveDay] = useState(1);
   const [activeStage, setActiveStage] = useState(0);
   const [completedDays, setCompletedDays] = useState<number[]>([]);
+  const [completedIntermediateDays, setCompletedIntermediateDays] = useState<
+    number[]
+  >([]);
   const [selectedAnswer, setSelectedAnswer] = useState("");
-  const [notes, setNotes] = useState<Record<number, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [timerSeconds, setTimerSeconds] = useState(15 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -654,8 +663,13 @@ export default function Home() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("starlight-korean-progress");
+      const savedIntermediate = localStorage.getItem(
+        "starlight-korean-intermediate-progress",
+      );
       const savedNotes = localStorage.getItem("starlight-korean-notes");
       if (saved) setCompletedDays(JSON.parse(saved));
+      if (savedIntermediate)
+        setCompletedIntermediateDays(JSON.parse(savedIntermediate));
       if (savedNotes) setNotes(JSON.parse(savedNotes));
     } catch {
       // The course remains usable when browser storage is unavailable.
@@ -669,8 +683,12 @@ export default function Home() {
       "starlight-korean-progress",
       JSON.stringify(completedDays),
     );
+    localStorage.setItem(
+      "starlight-korean-intermediate-progress",
+      JSON.stringify(completedIntermediateDays),
+    );
     localStorage.setItem("starlight-korean-notes", JSON.stringify(notes));
-  }, [completedDays, notes, hydrated]);
+  }, [completedDays, completedIntermediateDays, notes, hydrated]);
 
   useEffect(() => {
     if (!timerRunning || timerSeconds <= 0) return;
@@ -681,35 +699,72 @@ export default function Home() {
     return () => window.clearInterval(timer);
   }, [timerRunning, timerSeconds]);
 
-  const lesson = lessons[activeDay - 1] ?? lessons[0];
-  const progress = Math.round((completedDays.length / 20) * 100);
+  const activeLessons =
+    activeLevel === "beginner" ? lessons : intermediateLessons;
+  const activeTitles =
+    activeLevel === "beginner" ? dayTitles : intermediateDayTitles;
+  const activeCompleted =
+    activeLevel === "beginner" ? completedDays : completedIntermediateDays;
+  const activeNextDay =
+    activeLessons.find((item) => !activeCompleted.includes(item.day))?.day ??
+    activeLessons.length;
+  const lesson: Lesson =
+    (activeLessons[activeDay - 1] as Lesson | undefined) ??
+    (activeLessons[0] as Lesson);
+  const progress = Math.round(
+    (activeCompleted.length / activeLessons.length) * 100,
+  );
+  const beginnerProgress = Math.round((completedDays.length / lessons.length) * 100);
+  const intermediateProgress = Math.round(
+    (completedIntermediateDays.length / intermediateLessons.length) * 100,
+  );
+  const homeLevel: Level =
+    beginnerProgress === 100 ? "intermediate" : "beginner";
+  const homeLessons =
+    homeLevel === "beginner" ? lessons : intermediateLessons;
+  const homeCompleted =
+    homeLevel === "beginner" ? completedDays : completedIntermediateDays;
+  const homeProgress =
+    homeLevel === "beginner" ? beginnerProgress : intermediateProgress;
   const nextDay =
-    lessons.find((item) => !completedDays.includes(item.day))?.day ?? 20;
-  const nextLesson = lessons[nextDay - 1];
-  const highestCompletedDay = completedDays.length
-    ? Math.max(...completedDays)
+    homeLessons.find((item) => !homeCompleted.includes(item.day))?.day ??
+    homeLessons.length;
+  const nextLesson = homeLessons[nextDay - 1];
+  const highestCompletedDay = activeCompleted.length
+    ? Math.max(...activeCompleted)
     : 0;
-  const highestUnlockedDay = Math.min(20, highestCompletedDay + 1);
+  const highestUnlockedDay = Math.min(
+    activeLessons.length,
+    highestCompletedDay + 1,
+  );
+  const noteKey = `${activeLevel}-${activeDay}`;
   const timerLabel = `${String(Math.floor(timerSeconds / 60)).padStart(
     2,
     "0",
   )}:${String(timerSeconds % 60).padStart(2, "0")}`;
 
   const encouragement = useMemo(() => {
-    if (completedDays.length === 0) return "第一顆星正等著你點亮";
-    if (completedDays.length < 8) return "你的韓文字星圖正在成形";
-    if (completedDays.length < 15) return "你已經能組合自己的韓語句子";
-    if (completedDays.length < 20) return "成果舞台就在前方";
-    return "初級 20 天航線全部點亮";
-  }, [completedDays.length]);
+    if (activeCompleted.length === 0)
+      return activeLevel === "beginner"
+        ? "第一顆星正等著你點亮"
+        : "第一場中級彩排正等著你";
+    if (progress < 40) return "你的句子正在變得更完整";
+    if (progress < 75) return "你已經能連接想法與情境";
+    if (progress < 100) return "成果彩排就在前方";
+    return activeLevel === "beginner"
+      ? "初級 20 天航線全部點亮"
+      : "中級 15 天彩排全部完成";
+  }, [activeCompleted.length, activeLevel, progress]);
 
   function navigate(next: View) {
     setView(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function openLesson(day: number) {
-    if (day < 1 || day > lessons.length) return;
+  function openLesson(day: number, level: Level = activeLevel) {
+    const targetLessons = level === "beginner" ? lessons : intermediateLessons;
+    if (day < 1 || day > targetLessons.length) return;
+    setActiveLevel(level);
     setActiveDay(day);
     setActiveStage(0);
     setSelectedAnswer("");
@@ -729,10 +784,11 @@ export default function Home() {
   }
 
   function completeLesson() {
-    setCompletedDays((days) =>
-      days.includes(activeDay) ? days : [...days, activeDay],
-    );
-    navigate(activeDay === 20 ? "journal" : "map");
+    const update = (days: number[]) =>
+      days.includes(activeDay) ? days : [...days, activeDay];
+    if (activeLevel === "beginner") setCompletedDays(update);
+    else setCompletedIntermediateDays(update);
+    navigate(activeDay === activeLessons.length ? "journal" : "map");
   }
 
   return (
@@ -758,7 +814,7 @@ export default function Home() {
           </button>
           <button
             className={view === "lesson" ? "nav-active" : ""}
-            onClick={() => openLesson(nextDay)}
+            onClick={() => openLesson(activeNextDay, activeLevel)}
           >
             練習室
           </button>
@@ -793,10 +849,15 @@ export default function Home() {
                 <div className="hero-actions">
                   <button
                     className="primary-button"
-                    onClick={() => openLesson(nextDay)}
+                    onClick={() => openLesson(nextDay, homeLevel)}
                   >
                     <span>
-                      {progress === 100 ? "重溫" : progress ? "繼續" : "開始"} Day{" "}
+                      {homeProgress === 100
+                        ? "重溫"
+                        : homeProgress
+                          ? "繼續"
+                          : "開始"}{" "}
+                      {homeLevel === "intermediate" ? "中級" : ""} Day{" "}
                       {nextDay}
                     </span>
                     <b>→</b>
@@ -805,7 +866,7 @@ export default function Home() {
                     className="ghost-button"
                     onClick={() => navigate("map")}
                   >
-                    查看 20 天航線
+                    查看完整學習航線
                   </button>
                 </div>
                 <div className="hero-meta">
@@ -853,7 +914,7 @@ export default function Home() {
                   <button
                     key={stage.name}
                     onClick={() => {
-                      openLesson(nextDay);
+                      openLesson(nextDay, homeLevel);
                       setActiveStage(index);
                     }}
                   >
@@ -881,18 +942,28 @@ export default function Home() {
                   <h3>初級 · 韓文練習生</h3>
                   <span>字母、發音、生活對話與自我介紹</span>
                   <div className="mini-progress">
-                    <i style={{ width: `${progress}%` }} />
+                    <i style={{ width: `${beginnerProgress}%` }} />
                   </div>
-                  <b>{progress}% COMPLETE</b>
+                  <b>{beginnerProgress}% COMPLETE</b>
                 </article>
-                <article className="level-card">
+                <button
+                  type="button"
+                  className="level-card level-available"
+                  onClick={() => {
+                    setActiveLevel("intermediate");
+                    navigate("map");
+                  }}
+                >
                   <span className="level-number">02</span>
                   <div className="level-planet planet-violet">문</div>
-                  <p>INTERMEDIATE</p>
+                  <p>INTERMEDIATE · 15 DAYS</p>
                   <h3>中級 · 舞台準備中</h3>
                   <span>時態、敬語、連接句與情境任務</span>
-                  <b>COMING NEXT</b>
-                </article>
+                  <div className="mini-progress">
+                    <i style={{ width: `${intermediateProgress}%` }} />
+                  </div>
+                  <b>{intermediateProgress}% COMPLETE · 點擊進入</b>
+                </button>
                 <article className="level-card">
                   <span className="level-number">03</span>
                   <div className="level-planet planet-pink">별</div>
@@ -908,11 +979,50 @@ export default function Home() {
 
         {view === "map" && (
           <section className="map-view">
+            <div className="level-switcher" aria-label="選擇學習階段">
+              <button
+                className={activeLevel === "beginner" ? "is-active" : ""}
+                onClick={() => {
+                  setActiveLevel("beginner");
+                  setActiveDay(1);
+                }}
+              >
+                <span>01</span>
+                <strong>初級 · 韓文練習生</strong>
+                <small>20 天 · {beginnerProgress}%</small>
+              </button>
+              <button
+                className={activeLevel === "intermediate" ? "is-active" : ""}
+                onClick={() => {
+                  setActiveLevel("intermediate");
+                  setActiveDay(1);
+                }}
+              >
+                <span>02</span>
+                <strong>中級 · 舞台準備中</strong>
+                <small>15 天 · {intermediateProgress}%</small>
+              </button>
+              <button disabled>
+                <span>03</span>
+                <strong>高級 · 正式出道</strong>
+                <small>規劃中</small>
+              </button>
+            </div>
             <div className="page-intro">
-              <p className="eyebrow">BEGINNER CONSTELLATION · 20 DAYS</p>
-              <h1>你的韓語學習星圖</h1>
+              <p className="eyebrow">
+                {activeLevel === "beginner"
+                  ? "BEGINNER CONSTELLATION · 20 DAYS"
+                  : "INTERMEDIATE REHEARSAL · 15 DAYS"}
+              </p>
+              <h1>
+                {activeLevel === "beginner"
+                  ? "你的韓語學習星圖"
+                  : "舞台準備中 · 彩排地圖"}
+              </h1>
               <p>
-                從韓文字母一路前進到完整自我介紹。每一天都包含教學、練習、聽力、自習與結算。
+                {activeLevel === "beginner"
+                  ? "從韓文字母一路前進到完整自我介紹。每一天都包含教學、練習、聽力、自習與結算。"
+                  : "從時態、連接句與敬語一路前進到兩分鐘情境發表，讓韓語從單句成為完整表達。"}
               </p>
             </div>
 
@@ -929,17 +1039,17 @@ export default function Home() {
 
             <div className="constellation-map">
               <div className="map-line" aria-hidden="true" />
-              {dayTitles.map((title, index) => {
+              {activeTitles.map((title, index) => {
                 const day = index + 1;
                 const available = day <= highestUnlockedDay;
-                const done = completedDays.includes(day);
+                const done = activeCompleted.includes(day);
                 return (
                   <button
                     key={title}
                     className={`day-node ${available ? "available" : ""} ${
                       done ? "completed" : ""
                     }`}
-                    onClick={() => openLesson(day)}
+                    onClick={() => openLesson(day, activeLevel)}
                     disabled={!available}
                     aria-label={`Day ${day} ${title}${
                       available ? "" : "，尚未開放"
@@ -955,14 +1065,28 @@ export default function Home() {
             </div>
 
             <div className="future-levels">
-              <article>
-                <span>02</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveLevel(
+                    activeLevel === "beginner" ? "intermediate" : "beginner",
+                  );
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              >
+                <span>{activeLevel === "beginner" ? "02" : "01"}</span>
                 <div>
-                  <p>INTERMEDIATE</p>
-                  <h2>中級 · 舞台準備中</h2>
+                  <p>
+                    {activeLevel === "beginner" ? "INTERMEDIATE" : "BEGINNER"}
+                  </p>
+                  <h2>
+                    {activeLevel === "beginner"
+                      ? "中級 · 舞台準備中"
+                      : "初級 · 韓文練習生"}
+                  </h2>
                 </div>
-                <b>即將開放</b>
-              </article>
+                <b>切換地圖 →</b>
+              </button>
               <article>
                 <span>03</span>
                 <div>
@@ -988,29 +1112,42 @@ export default function Home() {
                   <span>{progress}%</span>
                 </div>
                 <div>
-                  <p>BEGINNER PROGRESS</p>
+                  <p>
+                    {activeLevel === "beginner"
+                      ? "BEGINNER PROGRESS"
+                      : "INTERMEDIATE PROGRESS"}
+                  </p>
                   <h2>{encouragement}</h2>
                   <span>
-                    已點亮 {completedDays.length} / 20 顆初級星星
+                    已完成 {activeCompleted.length} / {activeLessons.length}{" "}
+                    個{activeLevel === "beginner" ? "初級任務" : "中級彩排"}
                   </span>
                   <button onClick={() => navigate("map")}>繼續學習</button>
                 </div>
               </article>
               <article className="badge-card">
                 <p>已取得徽章</p>
-                <div className={completedDays.length ? "badge earned" : "badge"}>
+                <div className={activeCompleted.length ? "badge earned" : "badge"}>
                   <span>✦</span>
-                  <strong>第一道星光</strong>
-                  <small>完成第一天後取得</small>
+                  <strong>
+                    {activeLevel === "beginner" ? "第一道星光" : "彩排開始"}
+                  </strong>
+                  <small>完成本階段第一天後取得</small>
                 </div>
               </article>
               <article className="notes-card">
                 <p>最近的自習筆記</p>
                 {[1, 2, 3].map((day) => (
-                  <button key={day} onClick={() => openLesson(day)}>
+                  <button
+                    key={day}
+                    onClick={() => openLesson(day, activeLevel)}
+                  >
                     <span>DAY {day}</span>
                     <strong>
-                      {notes[day]?.trim() || "尚未留下筆記，點此開始"}
+                      {(
+                        notes[`${activeLevel}-${day}`] ||
+                        (activeLevel === "beginner" ? notes[String(day)] : "")
+                      )?.trim() || "尚未留下筆記，點此開始"}
                     </strong>
                   </button>
                 ))}
@@ -1225,11 +1362,16 @@ export default function Home() {
                   <label className="note-field">
                     <span>今天想記住的內容</span>
                     <textarea
-                      value={notes[activeDay] || ""}
+                      value={
+                        notes[noteKey] ||
+                        (activeLevel === "beginner"
+                          ? notes[String(activeDay)] || ""
+                          : "")
+                      }
                       onChange={(event) =>
                         setNotes((current) => ({
                           ...current,
-                          [activeDay]: event.target.value,
+                          [noteKey]: event.target.value,
                         }))
                       }
                       placeholder="例如：ㅗ 的短線朝上、ㅜ 的短線朝下⋯⋯"
@@ -1276,9 +1418,11 @@ export default function Home() {
                     </div>
                   </div>
                   <button className="primary-button" onClick={completeLesson}>
-                    {activeDay === 20
-                      ? "完成初級 20 天航線"
-                      : `點亮 Day ${activeDay} 星星`}
+                    {activeDay === activeLessons.length
+                      ? activeLevel === "beginner"
+                        ? "完成初級 20 天航線"
+                        : "完成中級 15 天彩排"
+                      : `完成 Day ${activeDay} 任務`}
                   </button>
                 </div>
               )}
