@@ -113,6 +113,499 @@ const lessons: Lesson[] = [
       "設計三個自己的音節星球",
     ],
   },
+  {
+    day: 4,
+    eyebrow: "把聲音送上新的軌道",
+    title: "認識 Y 系母音",
+    korean: "야, 여, 요, 유",
+    description: "在基本母音前加上一個輕快的 y 音，讀出 ㅑ、ㅕ、ㅛ、ㅠ。",
+    minutes: "約 50 分鐘",
+    guide: "누리 Nuri",
+    guideColor: "cyan",
+    teachingTitle: "多一條短線，就多一個 y 音",
+    teachingCopy:
+      "ㅏ 變成 ㅑ、ㅓ 變成 ㅕ。先看短線數量，再用「呀、優」的口型感受差異。",
+    sounds: [
+      { char: "ㅑ", label: "야", hint: "ㅏ 前加 y 音" },
+      { char: "ㅕ", label: "여", hint: "ㅓ 前加 y 音" },
+      { char: "ㅛ", label: "요", hint: "ㅗ 前加 y 音" },
+      { char: "ㅠ", label: "유", hint: "ㅜ 前加 y 音" },
+    ],
+    question: "哪一個字母讀作 요？",
+    options: ["ㅕ", "ㅛ", "ㅠ"],
+    answer: "ㅛ",
+    listenText: "야, 여, 요, 유",
+    mission: [
+      "將 ㅏ／ㅑ、ㅓ／ㅕ 分成兩組朗讀",
+      "聽四個音並畫出短線方向",
+      "不看提示寫出 야、여、요、유",
+    ],
+  },
+  {
+    day: 5,
+    eyebrow: "兩道星光合成新顏色",
+    title: "認識複合母音",
+    korean: "새로운 모음",
+    description: "認識 ㅐ、ㅔ、ㅘ、ㅝ，練習看見兩個母音合併後的聲音。",
+    minutes: "約 55 分鐘",
+    guide: "온 On",
+    guideColor: "violet",
+    teachingTitle: "複合母音是兩個口型的快速連接",
+    teachingCopy:
+      "ㅘ 可以想成 ㅗ 與 ㅏ 快速連在一起；ㅝ 則是 ㅜ 與 ㅓ。先慢後快，聲音會自然融合。",
+    sounds: [
+      { char: "ㅐ", label: "애", hint: "嘴巴自然張開" },
+      { char: "ㅔ", label: "에", hint: "現代韓語中很接近 ㅐ" },
+      { char: "ㅘ", label: "와", hint: "ㅗ + ㅏ" },
+      { char: "ㅝ", label: "워", hint: "ㅜ + ㅓ" },
+      { char: "왜", label: "왜", hint: "ㅗ + ㅐ" },
+    ],
+    question: "ㅗ 和 ㅏ 合起來是哪一個母音？",
+    options: ["ㅘ", "ㅝ", "ㅐ"],
+    answer: "ㅘ",
+    listenText: "애, 에, 와, 워, 왜",
+    mission: [
+      "慢慢念 ㅗ＋ㅏ，再加速變成 와",
+      "製作 ㅘ 與 ㅝ 的組合字卡",
+      "找出三個含有複合母音的韓文字",
+    ],
+  },
+  {
+    day: 6,
+    eyebrow: "讓發音帶上不同能量",
+    title: "送氣音與緊音",
+    korean: "힘을 조절해요",
+    description: "比較 ㄱ／ㅋ／ㄲ 等聲音，感受送氣、平音與緊音的不同。",
+    minutes: "約 60 分鐘",
+    guide: "루미 Lumi",
+    guideColor: "pink",
+    teachingTitle: "一張紙就能看見送氣",
+    teachingCopy:
+      "把薄紙放在嘴前念 카，紙張會明顯晃動；念 까 時聲音緊而短。不要用力喊，重點是氣流。",
+    sounds: [
+      { char: "ㅋ", label: "카", hint: "ㄱ 的送氣音" },
+      { char: "ㅌ", label: "타", hint: "ㄷ 的送氣音" },
+      { char: "ㅍ", label: "파", hint: "ㅂ 的送氣音" },
+      { char: "ㅊ", label: "차", hint: "ㅈ 的送氣音" },
+      { char: "ㄲ", label: "까", hint: "ㄱ 的緊音" },
+    ],
+    question: "ㄱ 的送氣音是哪一個？",
+    options: ["ㅋ", "ㄲ", "ㄴ"],
+    answer: "ㅋ",
+    listenText: "가, 카, 까. 다, 타, 따. 바, 파, 빠",
+    mission: [
+      "用紙張測試 가／카 的氣流差異",
+      "錄下自己念 가、카、까 的聲音再比較",
+      "將平音、送氣音、緊音各抄寫一列",
+    ],
+  },
+  {
+    day: 7,
+    eyebrow: "星球底部也能藏著聲音",
+    title: "收尾音 Batchim 入門",
+    korean: "받침을 만나요",
+    description: "認識音節方塊下方的收尾音，練習 각、안、밥、옷、밤。",
+    minutes: "約 60 分鐘",
+    guide: "하루 Haru",
+    guideColor: "cyan",
+    teachingTitle: "Batchim 是音節最後停住的位置",
+    teachingCopy:
+      "看到方塊底部的子音時，聲音要在那裡收住。先誇張地慢念，再縮短成自然的韓語節奏。",
+    sounds: [
+      { char: "각", label: "각", hint: "底部是 ㄱ" },
+      { char: "안", label: "안", hint: "底部是 ㄴ" },
+      { char: "밥", label: "밥", hint: "底部是 ㅂ" },
+      { char: "옷", label: "옷", hint: "底部是 ㅅ" },
+      { char: "밤", label: "밤", hint: "底部是 ㅁ" },
+    ],
+    question: "밥 的收尾音是哪一個子音？",
+    options: ["ㅂ", "ㅁ", "ㄴ"],
+    answer: "ㅂ",
+    listenText: "각, 안, 밥, 옷, 밤",
+    mission: [
+      "圈出五個音節底部的 Batchim",
+      "用手勢表示聲音在最後收住",
+      "比較 바 與 밥、오 與 옷 的差異",
+    ],
+  },
+  {
+    day: 8,
+    eyebrow: "完成第一次發音巡航",
+    title: "韓文字發音總複習",
+    korean: "한글 체크포인트",
+    description: "整合母音、子音、音節與收尾音，完成第一個韓文字檢查點。",
+    minutes: "約 55 分鐘",
+    guide: "별 Byeol",
+    guideColor: "violet",
+    teachingTitle: "先拆解，再讀出完整方塊",
+    teachingCopy:
+      "遇到不熟的字，依序找出開頭子音、母音與底部收尾音。每一格都能用同一套方法解碼。",
+    sounds: [
+      { char: "한", label: "ㅎ + ㅏ + ㄴ", hint: "有收尾音" },
+      { char: "글", label: "ㄱ + ㅡ + ㄹ", hint: "上下加收尾" },
+      { char: "친", label: "ㅊ + ㅣ + ㄴ", hint: "送氣音開頭" },
+      { char: "구", label: "ㄱ + ㅜ", hint: "上下排列" },
+      { char: "별", label: "ㅂ + ㅕ + ㄹ", hint: "Y 系母音" },
+    ],
+    question: "哪一個音節包含 ㅕ？",
+    options: ["한", "구", "별"],
+    answer: "별",
+    listenText: "한글, 친구, 별, 안녕",
+    mission: [
+      "拆解 한글 兩個音節的三個位置",
+      "隨機抽十張字卡並朗讀",
+      "整理目前最容易混淆的三組聲音",
+    ],
+  },
+  {
+    day: 9,
+    eyebrow: "向新的朋友發出第一道訊號",
+    title: "第一次打招呼",
+    korean: "안녕하세요!",
+    description: "學會日常招呼、道謝與道歉，完成第一段兩人對話。",
+    minutes: "約 50 分鐘",
+    guide: "누리 Nuri",
+    guideColor: "pink",
+    teachingTitle: "招呼語要和情境一起記",
+    teachingCopy:
+      "不要只背單字。想像進教室、收到幫助或準備離開時的畫面，句子會更容易留在記憶裡。",
+    sounds: [
+      { char: "안녕", label: "안녕하세요", hint: "您好／你好" },
+      { char: "감사", label: "감사합니다", hint: "謝謝" },
+      { char: "미안", label: "미안해요", hint: "對不起" },
+      { char: "반가워", label: "반가워요", hint: "很高興見到你" },
+      { char: "또 봐", label: "또 봐요", hint: "再見／再見面" },
+    ],
+    question: "第一次見面時，可以先說哪一句？",
+    options: ["안녕하세요", "얼마예요", "물 주세요"],
+    answer: "안녕하세요",
+    listenText: "안녕하세요. 만나서 반가워요. 감사합니다. 또 봐요.",
+    mission: [
+      "對著鏡子說三次 안녕하세요",
+      "將招呼、道謝、道歉分成三個情境",
+      "和家人完成一段 20 秒的韓語招呼",
+    ],
+  },
+  {
+    day: 10,
+    eyebrow: "在星圖上寫下自己的名字",
+    title: "韓文自我介紹",
+    korean: "저를 소개해요",
+    description: "用 저는～예요／이에요，介紹姓名、學生身分與來自哪裡。",
+    minutes: "約 60 分鐘",
+    guide: "온 On",
+    guideColor: "cyan",
+    teachingTitle: "自我介紹像三塊可以替換的積木",
+    teachingCopy:
+      "先說 저는，再放姓名或身分，最後接 예요／이에요。把內容換掉，就能創造自己的句子。",
+    sounds: [
+      { char: "저는", label: "저는 민수예요", hint: "我是敏洙" },
+      { char: "학생", label: "저는 학생이에요", hint: "我是學生" },
+      { char: "중학생", label: "중학생이에요", hint: "是國中生" },
+      { char: "대만", label: "대만에서 왔어요", hint: "來自台灣" },
+      { char: "반가워요", label: "만나서 반가워요", hint: "很高興見到你" },
+    ],
+    question: "名字以母音結尾時，通常接哪一個？",
+    options: ["예요", "이에요", "에서"],
+    answer: "예요",
+    listenText: "안녕하세요. 저는 민수예요. 저는 중학생이에요. 대만에서 왔어요.",
+    mission: [
+      "替換姓名，朗讀自己的介紹三次",
+      "寫下姓名、身分、來自哪裡三行積木",
+      "不看稿完成 30 秒自我介紹",
+    ],
+  },
+  {
+    day: 11,
+    eyebrow: "讓句子的主角亮起來",
+    title: "은／는 與 이／가",
+    korean: "누가 주인공이에요?",
+    description: "認識主題助詞與主格助詞，在簡短句子中找出談論的主角。",
+    minutes: "約 55 分鐘",
+    guide: "루미 Lumi",
+    guideColor: "violet",
+    teachingTitle: "助詞像貼在名詞後面的角色標籤",
+    teachingCopy:
+      "은／는常用來設定談論主題，이／가常用來指出句中的主角。先熟悉固定句型，不必一次背完所有差異。",
+    sounds: [
+      { char: "저는", label: "저는 학생이에요", hint: "以我為主題" },
+      { char: "민수는", label: "민수는 친구예요", hint: "子音後接 은／는中的 는" },
+      { char: "책은", label: "책은 여기 있어요", hint: "子音後接 은" },
+      { char: "비가", label: "비가 와요", hint: "雨是句子主角" },
+      { char: "친구가", label: "친구가 있어요", hint: "有朋友" },
+    ],
+    question: "「至於我，我是學生」應該用哪一個開頭？",
+    options: ["저는", "제가를", "저에서"],
+    answer: "저는",
+    listenText: "저는 학생이에요. 친구가 있어요. 비가 와요.",
+    mission: [
+      "圈出三個句子中的助詞",
+      "用自己的名字造一個 는 句子",
+      "將 은／는 與 이／가 例句各念兩輪",
+    ],
+  },
+  {
+    day: 12,
+    eyebrow: "在宇宙教室裡尋找物品",
+    title: "這個、那個與什麼",
+    korean: "이것은 뭐예요?",
+    description: "學會 이것、그것、저것、뭐예요，在教室情境中詢問物品。",
+    minutes: "約 50 分鐘",
+    guide: "하루 Haru",
+    guideColor: "pink",
+    teachingTitle: "距離決定要用哪一個「這／那」",
+    teachingCopy:
+      "靠近說話者用 이것，靠近對方用 그것，離雙方都遠用 저것。搭配手勢練習最容易理解。",
+    sounds: [
+      { char: "이것", label: "이것은 책이에요", hint: "這是書" },
+      { char: "그것", label: "그것은 뭐예요", hint: "那是什麼" },
+      { char: "저것", label: "저것은 학교예요", hint: "遠處那個是學校" },
+      { char: "뭐", label: "뭐예요", hint: "是什麼" },
+      { char: "책", label: "책이에요", hint: "是書" },
+    ],
+    question: "靠近說話者的「這個」是哪一個？",
+    options: ["이것", "그것", "저것"],
+    answer: "이것",
+    listenText: "이것은 뭐예요? 이것은 책이에요. 저것은 학교예요.",
+    mission: [
+      "指著身邊三樣物品說 이것",
+      "和同伴用 뭐예요 問答五次",
+      "畫出近、中、遠三個位置並填入詞語",
+    ],
+  },
+  {
+    day: 13,
+    eyebrow: "確認星艙裡有什麼",
+    title: "있어요／없어요",
+    korean: "있어요? 없어요?",
+    description: "用 있어요 與 없어요 表達有、沒有，也能詢問人物或物品。",
+    minutes: "約 55 分鐘",
+    guide: "별 Byeol",
+    guideColor: "cyan",
+    teachingTitle: "一組相反詞就能回答很多問題",
+    teachingCopy:
+      "있어요 表示存在或擁有，없어요 表示不存在或沒有。前面的名詞通常搭配 이／가。",
+    sounds: [
+      { char: "있어요", label: "책이 있어요", hint: "有書" },
+      { char: "없어요", label: "시간이 없어요", hint: "沒有時間" },
+      { char: "친구", label: "친구가 있어요", hint: "有朋友" },
+      { char: "고양이", label: "고양이가 있어요", hint: "有貓" },
+      { char: "질문", label: "질문이 있어요", hint: "有問題" },
+    ],
+    question: "「有一隻貓」是哪一句？",
+    options: ["고양이가 있어요", "고양이가 없어요", "고양이를 가요"],
+    answer: "고양이가 있어요",
+    listenText: "책이 있어요. 시간이 없어요. 친구가 있어요.",
+    mission: [
+      "列出書包裡有的三樣物品",
+      "用 없어요 說出兩樣沒有的物品",
+      "完成五組 있어요／없어요 快速問答",
+    ],
+  },
+  {
+    day: 14,
+    eyebrow: "為星星編上自己的號碼",
+    title: "韓文數字與年齡",
+    korean: "몇 살이에요?",
+    description: "學會固有數詞 하나到 다섯，並用 몇 살이에요 詢問年齡。",
+    minutes: "約 60 分鐘",
+    guide: "누리 Nuri",
+    guideColor: "violet",
+    teachingTitle: "數物品和說年齡，先從五個數字開始",
+    teachingCopy:
+      "하나、둘、셋、넷、다섯 是常用的固有數詞。接 살 時部分形式會縮短，例如 하나變成 한 살。",
+    sounds: [
+      { char: "하나", label: "하나", hint: "一" },
+      { char: "둘", label: "둘", hint: "二" },
+      { char: "셋", label: "셋", hint: "三" },
+      { char: "넷", label: "넷", hint: "四" },
+      { char: "다섯", label: "다섯", hint: "五" },
+    ],
+    question: "韓文固有數詞的「三」是哪一個？",
+    options: ["둘", "셋", "넷"],
+    answer: "셋",
+    listenText: "하나, 둘, 셋, 넷, 다섯. 몇 살이에요?",
+    mission: [
+      "數五樣身邊的物品",
+      "用手指配合 하나到 다섯朗讀",
+      "練習問答 몇 살이에요",
+    ],
+  },
+  {
+    day: 15,
+    eyebrow: "讓日常動作沿著時間前進",
+    title: "動詞現在式",
+    korean: "오늘 뭐 해요?",
+    description: "認識 아요／어요／해요，將常用動詞變成禮貌的現在式。",
+    minutes: "約 60 分鐘",
+    guide: "온 On",
+    guideColor: "pink",
+    teachingTitle: "先去掉 다，再選擇句尾",
+    teachingCopy:
+      "字典中的動詞多以 다 結尾。去掉 다 後，依母音接 아요或 어요；하다 類通常變成 해요。",
+    sounds: [
+      { char: "가요", label: "학교에 가요", hint: "가다 → 가요" },
+      { char: "먹어요", label: "밥을 먹어요", hint: "먹다 → 먹어요" },
+      { char: "봐요", label: "영화를 봐요", hint: "보다 → 봐요" },
+      { char: "공부해요", label: "한국어를 공부해요", hint: "공부하다 → 공부해요" },
+      { char: "좋아해요", label: "음악을 좋아해요", hint: "좋아하다 → 좋아해요" },
+    ],
+    question: "먹다 的現在式是哪一個？",
+    options: ["먹어요", "먹가요", "먹이에요"],
+    answer: "먹어요",
+    listenText: "학교에 가요. 밥을 먹어요. 한국어를 공부해요.",
+    mission: [
+      "將五個 다 動詞改成現在式",
+      "說出自己今天做的三件事",
+      "把三個動詞排成一天的時間線",
+    ],
+  },
+  {
+    day: 16,
+    eyebrow: "標記動作發生的座標",
+    title: "을／를、에／에서",
+    korean: "어디에서 공부해요?",
+    description: "用 을／를標記動作對象，用 에／에서表達目的地與動作地點。",
+    minutes: "約 60 分鐘",
+    guide: "루미 Lumi",
+    guideColor: "cyan",
+    teachingTitle: "助詞讓句子的路線更清楚",
+    teachingCopy:
+      "에常標示目的地或存在位置；에서標示動作發生的地方。을／를則貼在動作影響的對象後。",
+    sounds: [
+      { char: "학교에", label: "학교에 가요", hint: "去學校" },
+      { char: "학교에서", label: "학교에서 공부해요", hint: "在學校讀書" },
+      { char: "음악을", label: "음악을 들어요", hint: "聽音樂" },
+      { char: "친구를", label: "친구를 만나요", hint: "見朋友" },
+      { char: "집에", label: "집에 있어요", hint: "在家" },
+    ],
+    question: "動作在學校發生，應該使用哪一個？",
+    options: ["학교에", "학교에서", "학교를에"],
+    answer: "학교에서",
+    listenText: "학교에 가요. 학교에서 공부해요. 음악을 들어요.",
+    mission: [
+      "在句子中圈出地點助詞",
+      "用 에 與 에서 各造兩句",
+      "描述放學後去的地方與做的事情",
+    ],
+  },
+  {
+    day: 17,
+    eyebrow: "學會表達不要與不能",
+    title: "否定表達 안／못",
+    korean: "안 해요, 못 해요",
+    description: "分辨「不做」與「無法做」，用 안 和 못 建立簡短否定句。",
+    minutes: "約 50 分鐘",
+    guide: "하루 Haru",
+    guideColor: "violet",
+    teachingTitle: "안 是不做，못 是做不到",
+    teachingCopy:
+      "把 안 或 못 放在動詞前面，就能快速形成否定。先抓住意願與能力的差別。",
+    sounds: [
+      { char: "안 가요", label: "오늘 학교에 안 가요", hint: "今天不去學校" },
+      { char: "못 먹어요", label: "매운 음식을 못 먹어요", hint: "不能吃辣" },
+      { char: "안 봐요", label: "TV를 안 봐요", hint: "不看電視" },
+      { char: "못 해요", label: "수영을 못 해요", hint: "不會游泳" },
+      { char: "안 어려워요", label: "한국어가 안 어려워요", hint: "韓語不難" },
+    ],
+    question: "「我不會做」應該說哪一句？",
+    options: ["못 해요", "안 있어요를", "해요 못을"],
+    answer: "못 해요",
+    listenText: "오늘 안 가요. 매운 음식을 못 먹어요. 수영을 못 해요.",
+    mission: [
+      "分別列出兩件不做與兩件做不到的事",
+      "把三個肯定句改成否定句",
+      "和同伴進行 할 수 있어요 問答",
+    ],
+  },
+  {
+    day: 18,
+    eyebrow: "說出讓自己發光的喜好",
+    title: "喜歡與想要",
+    korean: "뭘 좋아해요?",
+    description: "用 좋아해요 表達喜歡，用 고 싶어요 表達想做的事情。",
+    minutes: "約 55 分鐘",
+    guide: "별 Byeol",
+    guideColor: "pink",
+    teachingTitle: "喜歡名詞，想做動作",
+    teachingCopy:
+      "名詞後搭配 좋아해요；想做某個動作時，去掉 다 後接 고 싶어요。",
+    sounds: [
+      { char: "좋아해요", label: "음악을 좋아해요", hint: "喜歡音樂" },
+      { char: "보고 싶어요", label: "영화를 보고 싶어요", hint: "想看電影" },
+      { char: "먹고 싶어요", label: "떡볶이를 먹고 싶어요", hint: "想吃辣炒年糕" },
+      { char: "가고 싶어요", label: "한국에 가고 싶어요", hint: "想去韓國" },
+      { char: "공부하고 싶어요", label: "한국어를 공부하고 싶어요", hint: "想學韓語" },
+    ],
+    question: "「我想學韓語」是哪一句？",
+    options: ["한국어를 공부하고 싶어요", "한국어가 없어요", "한국어를 안 가요"],
+    answer: "한국어를 공부하고 싶어요",
+    listenText: "음악을 좋아해요. 한국에 가고 싶어요. 한국어를 공부하고 싶어요.",
+    mission: [
+      "列出三樣自己喜歡的事物",
+      "用 고 싶어요 說三個願望",
+      "完成一分鐘喜好訪問",
+    ],
+  },
+  {
+    day: 19,
+    eyebrow: "前往韓語商店完成任務",
+    title: "購物與點餐",
+    korean: "이거 주세요",
+    description: "學會 주세요、얼마예요 與簡單數量詞，完成購物及點餐對話。",
+    minutes: "約 60 分鐘",
+    guide: "누리 Nuri",
+    guideColor: "cyan",
+    teachingTitle: "指出物品、詢問價格、禮貌請求",
+    teachingCopy:
+      "先用 이거 指出物品，再加 주세요。需要確認價格時說 얼마예요，就能完成最基本的購物對話。",
+    sounds: [
+      { char: "주세요", label: "이거 주세요", hint: "請給我這個" },
+      { char: "얼마", label: "얼마예요", hint: "多少錢" },
+      { char: "물", label: "물 주세요", hint: "請給我水" },
+      { char: "하나", label: "비빔밥 하나 주세요", hint: "請給我一份拌飯" },
+      { char: "맛있어요", label: "정말 맛있어요", hint: "真的很好吃" },
+    ],
+    question: "「請給我水」是哪一句？",
+    options: ["물 주세요", "물이 가요", "물 안녕하세요"],
+    answer: "물 주세요",
+    listenText: "이거 얼마예요? 물 주세요. 비빔밥 하나 주세요.",
+    mission: [
+      "用桌上三樣物品練習 이거 주세요",
+      "扮演店員與客人完成三輪對話",
+      "寫下自己想點的一份韓國料理",
+    ],
+  },
+  {
+    day: 20,
+    eyebrow: "初級航線最終成果舞台",
+    title: "星光成果舞台",
+    korean: "나의 첫 한국어 무대",
+    description: "整合 20 天內容，完成自我介紹、喜好與生活句子的最終任務。",
+    minutes: "約 60 分鐘",
+    guide: "온 On",
+    guideColor: "violet",
+    teachingTitle: "把學過的句型串成自己的故事",
+    teachingCopy:
+      "不需要使用艱難的句子。清楚說出招呼、姓名、身分、來自哪裡、喜好與想做的事，就是完整的初級成果。",
+    sounds: [
+      { char: "안녕하세요", label: "안녕하세요", hint: "先打招呼" },
+      { char: "저는", label: "저는 유진이에요", hint: "介紹姓名" },
+      { char: "학생", label: "저는 중학생이에요", hint: "介紹身分" },
+      { char: "좋아해요", label: "음악을 좋아해요", hint: "說出喜好" },
+      { char: "싶어요", label: "한국에 가고 싶어요", hint: "說出願望" },
+    ],
+    question: "哪一句是自然的身分介紹？",
+    options: ["저는 중학생이에요", "저를 중학생 가요", "중학생을 없어요"],
+    answer: "저는 중학생이에요",
+    listenText:
+      "안녕하세요. 저는 유진이에요. 저는 중학생이에요. 음악을 좋아해요. 한국에 가고 싶어요.",
+    mission: [
+      "寫出五句自己的韓語介紹",
+      "用正常速度朗讀並自行修正一次",
+      "不看稿完成 60 秒初級成果發表",
+    ],
+  },
 ];
 
 const dayTitles = [
@@ -190,6 +683,13 @@ export default function Home() {
 
   const lesson = lessons[activeDay - 1] ?? lessons[0];
   const progress = Math.round((completedDays.length / 20) * 100);
+  const nextDay =
+    lessons.find((item) => !completedDays.includes(item.day))?.day ?? 20;
+  const nextLesson = lessons[nextDay - 1];
+  const highestCompletedDay = completedDays.length
+    ? Math.max(...completedDays)
+    : 0;
+  const highestUnlockedDay = Math.min(20, highestCompletedDay + 1);
   const timerLabel = `${String(Math.floor(timerSeconds / 60)).padStart(
     2,
     "0",
@@ -197,8 +697,10 @@ export default function Home() {
 
   const encouragement = useMemo(() => {
     if (completedDays.length === 0) return "第一顆星正等著你點亮";
-    if (completedDays.length < 3) return "你的韓語星圖正在成形";
-    return "Day 1–3 已完成，準備前往下一個星域";
+    if (completedDays.length < 8) return "你的韓文字星圖正在成形";
+    if (completedDays.length < 15) return "你已經能組合自己的韓語句子";
+    if (completedDays.length < 20) return "成果舞台就在前方";
+    return "初級 20 天航線全部點亮";
   }, [completedDays.length]);
 
   function navigate(next: View) {
@@ -207,7 +709,7 @@ export default function Home() {
   }
 
   function openLesson(day: number) {
-    if (day > 3) return;
+    if (day < 1 || day > lessons.length) return;
     setActiveDay(day);
     setActiveStage(0);
     setSelectedAnswer("");
@@ -230,7 +732,7 @@ export default function Home() {
     setCompletedDays((days) =>
       days.includes(activeDay) ? days : [...days, activeDay],
     );
-    navigate("map");
+    navigate(activeDay === 20 ? "journal" : "map");
   }
 
   return (
@@ -256,7 +758,7 @@ export default function Home() {
           </button>
           <button
             className={view === "lesson" ? "nav-active" : ""}
-            onClick={() => openLesson(1)}
+            onClick={() => openLesson(nextDay)}
           >
             練習室
           </button>
@@ -291,9 +793,12 @@ export default function Home() {
                 <div className="hero-actions">
                   <button
                     className="primary-button"
-                    onClick={() => openLesson(1)}
+                    onClick={() => openLesson(nextDay)}
                   >
-                    <span>開始 Day 1</span>
+                    <span>
+                      {progress === 100 ? "重溫" : progress ? "繼續" : "開始"} Day{" "}
+                      {nextDay}
+                    </span>
                     <b>→</b>
                   </button>
                   <button
@@ -334,11 +839,13 @@ export default function Home() {
               <div className="today-heading">
                 <div>
                   <p className="eyebrow">TODAY&apos;S MISSION</p>
-                  <h2>Day 1 · 韓文字的第一顆星</h2>
+                  <h2>
+                    Day {nextDay} · {nextLesson.eyebrow}
+                  </h2>
                 </div>
                 <div className="duration">
                   <span>◷</span>
-                  <strong>約 50 分鐘</strong>
+                  <strong>{nextLesson.minutes}</strong>
                 </div>
               </div>
               <div className="stage-strip">
@@ -346,7 +853,7 @@ export default function Home() {
                   <button
                     key={stage.name}
                     onClick={() => {
-                      openLesson(1);
+                      openLesson(nextDay);
                       setActiveStage(index);
                     }}
                   >
@@ -405,7 +912,7 @@ export default function Home() {
               <p className="eyebrow">BEGINNER CONSTELLATION · 20 DAYS</p>
               <h1>你的韓語學習星圖</h1>
               <p>
-                先完成前三顆星的試用航線。每一天都包含教學、練習、聽力、自習與結算。
+                從韓文字母一路前進到完整自我介紹。每一天都包含教學、練習、聽力、自習與結算。
               </p>
             </div>
 
@@ -424,7 +931,7 @@ export default function Home() {
               <div className="map-line" aria-hidden="true" />
               {dayTitles.map((title, index) => {
                 const day = index + 1;
-                const available = day <= 3;
+                const available = day <= highestUnlockedDay;
                 const done = completedDays.includes(day);
                 return (
                   <button
@@ -441,7 +948,7 @@ export default function Home() {
                     <span className="node-star">{done ? "✓" : day}</span>
                     <small>DAY {String(day).padStart(2, "0")}</small>
                     <strong>{title}</strong>
-                    <em>{available ? (done ? "已點亮" : "可學習") : "規劃中"}</em>
+                    <em>{available ? (done ? "已點亮" : "可學習") : "依序解鎖"}</em>
                   </button>
                 );
               })}
@@ -769,7 +1276,9 @@ export default function Home() {
                     </div>
                   </div>
                   <button className="primary-button" onClick={completeLesson}>
-                    點亮 Day {activeDay} 星星
+                    {activeDay === 20
+                      ? "完成初級 20 天航線"
+                      : `點亮 Day ${activeDay} 星星`}
                   </button>
                 </div>
               )}
