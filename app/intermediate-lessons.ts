@@ -10,7 +10,7 @@ export const intermediateLessons = [
     guideColor: "cyan",
     teachingTitle: "現在式向後移動，就成為過去式",
     teachingCopy:
-      "動詞詞幹依母音接 았어요或었어요；하다變成했어요。先從常用動詞整句記憶。",
+      "動詞詞幹依母音接 았어요 或 었어요；하다 變成 했어요。先從常用動詞整句記憶。",
     sounds: [
       { char: "갔어요", label: "학교에 갔어요", hint: "去過了" },
       { char: "먹었어요", label: "김밥을 먹었어요", hint: "吃過了" },
@@ -76,7 +76,7 @@ export const intermediateLessons = [
     question: "「正在聽音樂」是哪一句？",
     options: ["음악을 듣고 있어요", "음악을 들었어요", "음악을 들을 거예요"],
     answer: "음악을 듣고 있어요",
-    listenText: "저는 지금 음악을 듣고 있어요. 동생은 숙제하고 있어요.",
+    listenText: "저는 지금 음악을 듣고 있어요. 동생은 숙제를 하고 있어요.",
     mission: [
       "觀察身邊三個人正在做什麼",
       "將四個動詞改成 고 있어요",
@@ -122,7 +122,7 @@ export const intermediateLessons = [
     guideColor: "violet",
     teachingTitle: "前半句是原因，後半句是結果",
     teachingCopy:
-      "詞幹依母音接 아서或어서；하다變成해서。先把兩個短句的因果順序排好。",
+      "詞幹依母音接 아서 或 어서；하다 變成 해서。先把兩個短句的因果順序排好。",
     sounds: [
       { char: "피곤해서", label: "피곤해서 일찍 잤어요", hint: "因為累所以早睡" },
       { char: "좋아서", label: "노래가 좋아서 자주 들어요", hint: "因為喜歡所以常聽" },
@@ -318,7 +318,7 @@ export const intermediateLessons = [
     guideColor: "pink",
     teachingTitle: "본 적 있어요 是「曾經試過」",
     teachingCopy:
-      "動詞變成 아／어 보다後，再接 본 적 있어요，表示過去某次經驗。",
+      "動詞變成 아／어 보다 後，再接 본 적 있어요，表示過去某次經驗。",
     sounds: [
       { char: "가 본 적 있어요", label: "한국에 가 본 적 있어요", hint: "去過韓國" },
       { char: "먹어 본 적 있어요", label: "김치를 먹어 본 적 있어요", hint: "吃過泡菜" },
@@ -346,9 +346,9 @@ export const intermediateLessons = [
     guideColor: "cyan",
     teachingTitle: "敬語不是更難，而是表達尊重的距離",
     teachingCopy:
-      "先記住 계시다、드시다等高頻敬語，再用 (으)세요形成禮貌詢問或邀請。",
+      "先記住 계시다、드시다 等高頻敬語，再用 (으)세요 形成禮貌詢問或邀請。",
     sounds: [
-      { char: "계세요", label: "선생님이 교실에 계세요", hint: "있어요 的敬語" },
+      { char: "계세요", label: "선생님께서 교실에 계세요", hint: "있어요 的敬語" },
       { char: "드세요", label: "맛있게 드세요", hint: "먹어요 的敬語" },
       { char: "오세요", label: "언제 오세요?", hint: "何時來" },
       { char: "앉으세요", label: "여기 앉으세요", hint: "請坐這裡" },
@@ -374,7 +374,7 @@ export const intermediateLessons = [
     guideColor: "violet",
     teachingTitle: "在引用內容後加 라고 해요",
     teachingCopy:
-      "介紹名稱或引用簡短內容時，可以把原話放在라고 해요前面。",
+      "介紹名稱或引用簡短內容時，可以把原話放在 라고 해요 前面。",
     sounds: [
       { char: "유진이라고 해요", label: "저는 유진이라고 해요", hint: "我叫裕真" },
       { char: "괜찮다고 해요", label: "친구가 괜찮다고 해요", hint: "朋友說沒關係" },
