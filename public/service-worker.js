@@ -1,5 +1,26 @@
-const CACHE_NAME = "starlight-korean-v5";
-const CORE_ASSETS = ["/", "/privacy", "/manifest.webmanifest", "/favicon.svg"];
+const CACHE_NAME = "starlight-korean-v6";
+const AUDIO_ASSETS = Object.entries({
+  beginner: 20,
+  intermediate: 15,
+  advanced: 15,
+}).flatMap(([level, days]) =>
+  Array.from(
+    { length: days },
+    (_, index) => `/audio/${level}-day-${String(index + 1).padStart(2, "0")}.mp3`,
+  ),
+);
+const CORE_ASSETS = [
+  "/",
+  "/privacy",
+  "/manifest.webmanifest",
+  "/favicon.svg",
+  "/guides/lumi-v1.webp",
+  "/guides/haru-v1.webp",
+  "/guides/byeol-v1.webp",
+  "/guides/nuri-v1.webp",
+  "/guides/on-v1.webp",
+  ...AUDIO_ASSETS,
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

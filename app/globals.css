@@ -1398,6 +1398,7 @@ footer {
 }
 
 .answer-feedback {
+  min-height: 52px;
   max-width: 750px;
   margin: 0 auto 28px;
   padding: 14px;
@@ -1972,6 +1973,10 @@ footer p {
   }
 }
 
+.answer-feedback.is-empty {
+  background: transparent;
+}
+
 .day-node.checkpoint {
   border-color: rgba(244, 173, 255, 0.62);
   background:
@@ -2013,7 +2018,7 @@ footer p {
 
 .vocabulary-head > button,
 .listen-question-button {
-  min-height: 42px;
+  min-height: 48px;
   padding: 0 16px;
   border: 1px solid rgba(139, 229, 255, 0.32);
   border-radius: 999px;
@@ -2785,5 +2790,151 @@ textarea:focus-visible {
   .badge-grid,
   .review-list {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Expanded practice system and individual study guides */
+.guide-chip > img {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 24%;
+  box-shadow: 0 0 20px rgba(117, 237, 255, 0.24);
+}
+
+.practice-card .answer-grid button {
+  padding: 18px;
+  font-size: clamp(1.05rem, 2vw, 1.45rem);
+  line-height: 1.5;
+}
+
+.written-answer {
+  display: grid;
+  max-width: 750px;
+  gap: 12px;
+  margin: 34px auto 28px;
+  text-align: left;
+}
+
+.written-answer label {
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.written-answer textarea {
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 22px;
+  outline: none;
+  background: rgba(5, 6, 25, 0.5);
+  color: #fff;
+  font-family: "Noto Serif KR", serif;
+  font-size: 24px;
+  line-height: 1.6;
+}
+
+.written-answer textarea:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 4px rgba(117, 237, 255, 0.12);
+}
+
+.written-answer button {
+  justify-self: end;
+  min-width: 150px;
+}
+
+.guide-team-card {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+}
+
+.guide-team-card > .guide-team-copy {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  padding: 30px;
+}
+
+.guide-team-card > .guide-gallery {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  align-content: stretch;
+}
+
+.guide-gallery figure {
+  position: relative;
+  min-width: 0;
+  min-height: 310px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #101439;
+}
+
+.guide-gallery img {
+  width: 100%;
+  height: 100%;
+  min-height: 310px;
+  object-fit: cover;
+  object-position: 50% 35%;
+}
+
+.guide-gallery figcaption {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 13px;
+  background: rgba(5, 6, 25, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.guide-gallery figcaption strong,
+.guide-gallery figcaption small {
+  display: block;
+}
+
+.guide-gallery figcaption strong {
+  font-size: 0.78rem;
+}
+
+.guide-gallery figcaption small {
+  color: var(--muted);
+  font-size: 0.67rem;
+}
+
+@media (max-width: 1100px) {
+  .guide-team-card {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-team-card > .guide-gallery {
+    grid-template-columns: repeat(5, minmax(130px, 1fr));
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .practice-card .answer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .written-answer textarea {
+    min-height: 110px;
+    font-size: 20px;
   }
 }

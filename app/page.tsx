@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   intermediateDayTitles,
   intermediateLessons,
 } from "./intermediate-lessons";
 import { advancedDayTitles, advancedLessons } from "./advanced-lessons";
+import {
+  answersMatch,
+  buildCheckpointExercises,
+  buildLessonExercises,
+  type PracticeExercise,
+} from "./learning-exercises";
 
 type View = "home" | "map" | "journal" | "lesson" | "coach";
 type Level = "beginner" | "intermediate" | "advanced";
@@ -65,15 +71,6 @@ type Lesson = {
   answer: string;
   listenText: string;
   mission: readonly string[];
-};
-
-type PracticeExercise = {
-  kind: "choice" | "match" | "listen";
-  kicker: string;
-  question: string;
-  options: readonly string[];
-  answer: string;
-  audio?: string;
 };
 
 const lessons: Lesson[] = [
@@ -710,7 +707,7 @@ const levelMeta: Record<
     eyebrow: "BEGINNER CONSTELLATION · 20 DAYS",
     mapTitle: "你的韓語學習星圖",
     mapCopy:
-      "從韓文字母一路前進到完整自我介紹。每一天都包含教學、三題練習、聽力、自習與結算。",
+      "從韓文字母一路前進到完整自我介紹。每一天都包含教學、八種練習、聽力、自習與結算。",
     completion: "完成初級 20 天航線",
   },
   intermediate: {
@@ -754,6 +751,14 @@ const finalRubrics: Record<Level, readonly string[]> = {
   ],
 };
 
+const guideProfiles = [
+  { key: "루미", name: "루미 Lumi", role: "發音與聽力", image: "/guides/lumi-v1.webp" },
+  { key: "하루", name: "하루 Haru", role: "文法與字卡", image: "/guides/haru-v1.webp" },
+  { key: "별", name: "별 Byeol", role: "口說與勇氣", image: "/guides/byeol-v1.webp" },
+  { key: "누리", name: "누리 Nuri", role: "閱讀與筆記", image: "/guides/nuri-v1.webp" },
+  { key: "온", name: "온 On", role: "複習與完課", image: "/guides/on-v1.webp" },
+] as const;
+
 function getLevelLessons(level: Level): readonly Lesson[] {
   if (level === "beginner") return lessons;
   if (level === "intermediate")
@@ -765,45 +770,6 @@ function getLevelTitles(level: Level): readonly string[] {
   if (level === "beginner") return dayTitles;
   if (level === "intermediate") return intermediateDayTitles;
   return advancedDayTitles;
-}
-
-function buildPracticeExercises(lesson: Lesson): PracticeExercise[] {
-  const sounds = lesson.sounds;
-  const matchIndex = lesson.day % sounds.length;
-  const listenIndex = (lesson.day + 1) % sounds.length;
-  const optionLabels = (targetIndex: number) => {
-    const ordered = [
-      sounds[targetIndex],
-      sounds[(targetIndex + 1) % sounds.length],
-      sounds[(targetIndex + 2) % sounds.length],
-    ];
-    return Array.from(new Set(ordered.map((sound) => sound.label)));
-  };
-
-  return [
-    {
-      kind: "choice",
-      kicker: "文法選擇",
-      question: lesson.question,
-      options: lesson.options,
-      answer: lesson.answer,
-    },
-    {
-      kind: "match",
-      kicker: "單字配對",
-      question: `「${sounds[matchIndex].char}」最適合配對哪個例句？`,
-      options: optionLabels(matchIndex),
-      answer: sounds[matchIndex].label,
-    },
-    {
-      kind: "listen",
-      kicker: "聽力辨識",
-      question: "播放語音後，選出你聽到的句子。",
-      options: optionLabels(listenIndex),
-      answer: sounds[listenIndex].label,
-      audio: sounds[listenIndex].label,
-    },
-  ];
 }
 
 export default function Home() {
@@ -819,6 +785,7 @@ export default function Home() {
     [],
   );
   const [selectedAnswer, setSelectedAnswer] = useState("");
+  const [draftAnswer, setDraftAnswer] = useState("");
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [completedPractice, setCompletedPractice] = useState<number[]>([]);
   const [mistakes, setMistakes] = useState<Record<string, number>>({});
@@ -856,6 +823,7 @@ export default function Home() {
   const [timerSeconds, setTimerSeconds] = useState(15 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const activeAudio = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     try {
@@ -1050,9 +1018,19 @@ export default function Home() {
   );
   const noteKey = `${activeLevel}-${activeDay}`;
   const mistakeKey = `${activeLevel}-${activeDay}`;
-  const practiceExercises = buildPracticeExercises(lesson);
-  const currentExercise = practiceExercises[practiceIndex];
   const isCheckpoint = activeDay % 5 === 0;
+  const practiceExercises: PracticeExercise[] = isCheckpoint
+    ? buildCheckpointExercises(activeLessons, activeDay, activeLevel)
+    : buildLessonExercises(lesson, activeLevel);
+  const currentExercise = practiceExercises[practiceIndex] ?? practiceExercises[0];
+  const isPracticeCorrect = answersMatch(
+    selectedAnswer,
+    currentExercise.answer,
+  );
+  const currentGuide =
+    guideProfiles.find((profile) => lesson.guide.startsWith(profile.key)) ??
+    guideProfiles[0];
+  const lessonAudioPath = `/audio/${activeLevel}-day-${String(activeDay).padStart(2, "0")}.mp3`;
   const isFinalDay = activeDay === activeLessons.length;
   const mistakeDays = Object.entries(mistakes)
     .filter(([key, count]) => key.startsWith(`${activeLevel}-`) && count > 0)
@@ -1085,7 +1063,9 @@ export default function Home() {
   const reviewSchedule = [1, 3, 7, 14];
   const dueReviews = Object.entries(completionDates)
     .map(([key, date]) => {
-      const [level, dayText] = key.split("-");
+       const separator = key.lastIndexOf("-");
+       const level = key.slice(0, separator);
+       const dayText = key.slice(separator + 1);
       const age = Math.floor(
         (Date.now() - new Date(date).getTime()) / 86_400_000,
       );
@@ -1165,6 +1145,7 @@ export default function Home() {
     setActiveDay(day);
     setActiveStage(0);
     setSelectedAnswer("");
+    setDraftAnswer("");
     setPracticeIndex(0);
     setCompletedPractice([]);
     setShowCardHints(false);
@@ -1175,6 +1156,7 @@ export default function Home() {
 
   function speak(text: string, slow = false) {
     if (!("speechSynthesis" in window)) return;
+    activeAudio.current?.pause();
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "ko-KR";
@@ -1185,6 +1167,15 @@ export default function Home() {
     utterance.rate = slow ? 0.62 : 0.88;
     utterance.pitch = 1;
     window.speechSynthesis.speak(utterance);
+  }
+
+  function playFixedAudio(path: string, fallbackText: string, slow = false) {
+    window.speechSynthesis?.cancel();
+    activeAudio.current?.pause();
+    const audio = new Audio(path);
+    activeAudio.current = audio;
+    audio.playbackRate = slow ? 0.72 : 1;
+    audio.play().catch(() => speak(fallbackText, slow));
   }
 
   function completeLesson() {
@@ -1219,7 +1210,7 @@ export default function Home() {
 
   function choosePracticeAnswer(option: string) {
     setSelectedAnswer(option);
-    if (option === currentExercise.answer) {
+    if (answersMatch(option, currentExercise.answer)) {
       setCompletedPractice((current) =>
         current.includes(practiceIndex)
           ? current
@@ -1234,10 +1225,11 @@ export default function Home() {
   }
 
   function advancePractice() {
-    if (selectedAnswer !== currentExercise.answer) return;
+    if (!answersMatch(selectedAnswer, currentExercise.answer)) return;
     if (practiceIndex < practiceExercises.length - 1) {
       setPracticeIndex((index) => index + 1);
       setSelectedAnswer("");
+      setDraftAnswer("");
       return;
     }
     setActiveStage(3);
@@ -1915,7 +1907,7 @@ export default function Home() {
                   </div>
                 ) : (
                   <p className="mistake-empty">
-                    還沒有錯題紀錄。完成三題練習後，需複習的題目會出現在這裡。
+                    還沒有錯題紀錄。完成互動練習後，需複習的題目會出現在這裡。
                   </p>
                 )}
               </article>
@@ -1950,11 +1942,7 @@ export default function Home() {
                 </div>
               </article>
               <article className="guide-team-card">
-                <img
-                  src="/study-guides-team-v1.webp"
-                  alt="五位原創男性 Q 版韓語學習嚮導在星空觀測室合照"
-                />
-                <div>
+                <div className="guide-team-copy">
                   <p className="card-kicker">ORIGINAL STUDY GUIDES</p>
                   <h2>五位嚮導，各自守護一種能力</h2>
                   <div className="guide-role-list">
@@ -1967,6 +1955,20 @@ export default function Home() {
                   <small>
                     角色皆為原創虛構人物，與任何真實藝人、團體或娛樂公司無關。
                   </small>
+                </div>
+                <div className="guide-gallery">
+                  {guideProfiles.map((profile) => (
+                    <figure key={profile.key}>
+                      <img
+                        src={profile.image}
+                        alt={`${profile.name}，${profile.role}嚮導`}
+                      />
+                      <figcaption>
+                        <strong>{profile.name}</strong>
+                        <small>{profile.role}</small>
+                      </figcaption>
+                    </figure>
+                  ))}
                 </div>
               </article>
               <article className="data-tools-card">
@@ -2308,7 +2310,7 @@ export default function Home() {
                   <h1>{stages[activeStage].name}</h1>
                 </div>
                 <div className={`guide-chip ${lesson.guideColor}`}>
-                  <span>✦</span>
+                  <img src={currentGuide.image} alt="" aria-hidden="true" />
                   <div>
                     <small>今日嚮導</small>
                     <strong>{lesson.guide}</strong>
@@ -2374,7 +2376,11 @@ export default function Home() {
                     ))}
                   </div>
                   <div className="lesson-actions">
-                    <button onClick={() => speak(lesson.listenText, true)}>
+                    <button
+                      onClick={() =>
+                        playFixedAudio(lessonAudioPath, lesson.listenText, true)
+                      }
+                    >
                       慢速播放全部
                     </button>
                     <button
@@ -2398,14 +2404,22 @@ export default function Home() {
                       </p>
                       <h2>
                         {isCheckpoint
-                          ? `Day ${activeDay} 階段考 · 三連星挑戰`
-                          : "今日三連星練習"}
+                          ? `Day ${activeDay} 階段考 · 前五課累積檢核`
+                          : "今日八種能力練習"}
                       </h2>
                     </div>
                     <div className="practice-dots" aria-label="練習進度">
                       {practiceExercises.map((exercise, index) => (
                         <span
-                          key={exercise.kind}
+                          key={exercise.id}
+                          role="img"
+                          aria-label={`第 ${index + 1} 題${
+                            completedPractice.includes(index)
+                              ? "已完成"
+                              : index === practiceIndex
+                                ? "進行中"
+                                : "尚未完成"
+                          }`}
                           className={
                             completedPractice.includes(index)
                               ? "is-done"
@@ -2421,51 +2435,88 @@ export default function Home() {
                   </div>
                   <p className="practice-type">{currentExercise.kicker}</p>
                   <h3>{currentExercise.question}</h3>
-                  {currentExercise.kind === "listen" && (
+                  {(currentExercise.kind === "listen" ||
+                    currentExercise.kind === "dictation") && (
                     <button
                       className="listen-question-button"
-                      onClick={() => speak(currentExercise.audio ?? "", true)}
+                      onClick={() =>
+                        currentExercise.audioPath
+                          ? playFixedAudio(
+                              currentExercise.audioPath,
+                              currentExercise.audio ?? "",
+                              true,
+                            )
+                          : speak(currentExercise.audio ?? "", true)
+                      }
                     >
-                      ♫ 播放慢速題目
+                      ♫ 播放題目語音
                     </button>
                   )}
-                  <div className="answer-grid">
-                    {currentExercise.options.map((option) => (
+                  {currentExercise.interaction === "options" ? (
+                    <div className="answer-grid">
+                      {currentExercise.options.map((option) => (
+                        <button
+                          key={option}
+                          className={
+                            selectedAnswer === option ? "answer-selected" : ""
+                          }
+                          onClick={() => choosePracticeAnswer(option)}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="written-answer">
+                      <label htmlFor="written-practice-answer">
+                        你的韓文答案
+                      </label>
+                      <textarea
+                        id="written-practice-answer"
+                        value={draftAnswer}
+                        onChange={(event) => {
+                          setDraftAnswer(event.target.value);
+                          setSelectedAnswer("");
+                        }}
+                        placeholder="在這裡輸入韓文…"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                      />
                       <button
-                        key={option}
-                        className={
-                          selectedAnswer === option ? "answer-selected" : ""
-                        }
-                        onClick={() => choosePracticeAnswer(option)}
+                        disabled={!draftAnswer.trim()}
+                        onClick={() => choosePracticeAnswer(draftAnswer)}
                       >
-                        {option}
+                        檢查答案
                       </button>
-                    ))}
-                  </div>
-                  {selectedAnswer && (
-                    <div
-                      className={`answer-feedback ${
-                        selectedAnswer === currentExercise.answer
-                          ? "correct"
-                          : "retry"
-                      }`}
-                      role="status"
-                    >
-                      {selectedAnswer === currentExercise.answer
-                        ? "정답이에요! 答對了，這顆星已經亮起來。"
-                        : `아직 아니에요. 再看一次提示；這題已加入錯題星球。`}
                     </div>
                   )}
+                  <div
+                    className={`answer-feedback ${
+                      selectedAnswer
+                        ? isPracticeCorrect
+                          ? "correct"
+                          : "retry"
+                        : "is-empty"
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {selectedAnswer
+                      ? isPracticeCorrect
+                        ? "정답이에요! 答對了，這顆星已經亮起來。"
+                        : "아직 아니에요. 再看一次提示；這題已加入錯題星球。"
+                      : ""}
+                  </div>
                   <button
                     className="primary-button"
-                    disabled={selectedAnswer !== currentExercise.answer}
+                    disabled={!isPracticeCorrect}
                     onClick={advancePractice}
                   >
                     {practiceIndex < practiceExercises.length - 1
                       ? "答對了，前往下一題 →"
                       : isCheckpoint
-                        ? "階段考完成，進入聽力 →"
-                        : "三題完成，進入聽力 →"}
+                        ? "累積檢核完成，進入聽力 →"
+                        : "八題完成，進入聽力 →"}
                   </button>
                 </div>
               )}
@@ -2486,15 +2537,23 @@ export default function Home() {
                   </div>
                   <p className="listening-text">{lesson.listenText}</p>
                   <div className="audio-actions">
-                    <button onClick={() => speak(lesson.listenText)}>
+                    <button
+                      onClick={() =>
+                        playFixedAudio(lessonAudioPath, lesson.listenText)
+                      }
+                    >
                       ♫ 正常速度
                     </button>
-                    <button onClick={() => speak(lesson.listenText, true)}>
+                    <button
+                      onClick={() =>
+                        playFixedAudio(lessonAudioPath, lesson.listenText, true)
+                      }
+                    >
                       ◌ 慢速跟讀
                     </button>
                   </div>
                   <p className="privacy-note">
-                    提醒：語音由裝置的韓語語音播放，不會錄音或上傳資料。
+                    固定語音檔可在各裝置保持一致；播放不會錄音或上傳資料。
                   </p>
                   <button
                     className="primary-button"
