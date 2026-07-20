@@ -36,6 +36,7 @@ export function normalizeAnswer(value: string) {
   return value
     .normalize("NFC")
     .replace(punctuation, "")
+    .replace(/\s*\+\s*/g, " + ")
     .replace(/\s+/g, " ")
     .trim()
     .toLocaleLowerCase("ko-KR");
@@ -79,6 +80,16 @@ function sentenceOrder(text: string, fallback: readonly string[], seed: number) 
   };
 }
 
+function buildFillPrompt(target: ExerciseLesson["sounds"][number]) {
+  if (target.label.includes("+")) {
+    return `請依照「韓文字母 + 韓文字母」的格式，寫出字卡「${target.char}」的組合方式。提示：${target.hint}。`;
+  }
+  if (target.label.includes(" ")) {
+    return `請輸入字卡「${target.char}」下方的完整韓文例詞或句子（保留詞間空格）。提示：${target.hint}。`;
+  }
+  return `請輸入字卡「${target.char}」下方的完整韓文內容。提示：${target.hint}。`;
+}
+
 export function buildLessonExercises(
   lesson: ExerciseLesson,
   level: string,
@@ -99,6 +110,7 @@ export function buildLessonExercises(
   const translationTarget = sounds[(lesson.day + 2) % sounds.length];
   const fillTarget = sounds[(lesson.day + 3) % sounds.length];
   const correctionTarget = sounds[(lesson.day + 1) % sounds.length];
+  const isBeginnerPhonics = level === "beginner" && lesson.day <= 8;
 
   return [
     {
@@ -115,7 +127,7 @@ export function buildLessonExercises(
       kind: "match",
       interaction: "options",
       kicker: "單字配對",
-      question: `「${sounds[matchIndex].char}」最適合配對哪個例句？`,
+      question: `字卡「${sounds[matchIndex].char}」下方的完整韓文內容是哪一個？提示：${sounds[matchIndex].hint}。`,
       options: optionLabels(matchIndex, lesson.day),
       answer: sounds[matchIndex].label,
     },
@@ -137,8 +149,10 @@ export function buildLessonExercises(
       id: `day-${lesson.day}-order`,
       kind: "order",
       interaction: "options",
-      kicker: "句子排序",
-      question: "哪一組詞序最自然？",
+      kicker: isBeginnerPhonics ? "字音排序" : "句子排序",
+      question: isBeginnerPhonics
+        ? "依照今日教材的示範順序，哪一組字音排列正確？"
+        : "哪一組韓文詞序最自然？",
       options: order.options,
       answer: order.answer,
     },
@@ -147,7 +161,7 @@ export function buildLessonExercises(
       kind: "fill",
       interaction: "text",
       kicker: "韓文填空",
-      question: `請用韓文完整輸入：「${fillTarget.hint}」`,
+      question: buildFillPrompt(fillTarget),
       options: [],
       answer: fillTarget.label,
     },
@@ -156,7 +170,7 @@ export function buildLessonExercises(
       kind: "correction",
       interaction: "options",
       kicker: "韓文校對",
-      question: `校對字卡：「${correctionTarget.char}」應該和哪個韓文例詞或句子配對？`,
+      question: `請檢查字卡「${correctionTarget.char}」（提示：${correctionTarget.hint}），選出與它正確配對的完整韓文內容。`,
       options: optionLabels((lesson.day + 1) % sounds.length, lesson.day + 2),
       answer: correctionTarget.label,
     },
@@ -164,8 +178,8 @@ export function buildLessonExercises(
       id: `day-${lesson.day}-translation`,
       kind: "translation",
       interaction: "options",
-      kicker: "中韓轉換",
-      question: `「${translationTarget.hint}」最適合翻成哪一句？`,
+      kicker: "提示選句",
+      question: `根據提示「${translationTarget.hint}」，選出字卡「${translationTarget.char}」對應的完整韓文內容。`,
       options: optionLabels((lesson.day + 2) % sounds.length, lesson.day + 1),
       answer: translationTarget.label,
     },

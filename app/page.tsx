@@ -558,7 +558,7 @@ const lessons: Lesson[] = [
       { char: "못 해요", label: "수영을 못 해요", hint: "不會游泳" },
       { char: "안 어려워요", label: "한국어가 안 어려워요", hint: "韓語不難" },
     ],
-    question: "「我不會做」應該說哪一句？",
+    question: "想表達「我做不到／沒有能力做」時，應該說哪一句？",
     options: ["못 해요", "안 있어요를", "해요 못을"],
     answer: "못 해요",
     listenText: "오늘 안 가요. 매운 음식을 못 먹어요. 수영을 못 해요.",
