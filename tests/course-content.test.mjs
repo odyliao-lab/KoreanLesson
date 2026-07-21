@@ -7,6 +7,7 @@ import {
   buildCheckpointExercises,
   buildLessonExercises,
 } from "../app/learning-exercises.ts";
+import { getCardChineseSupport } from "../app/card-chinese-support.ts";
 
 const root = new URL("../", import.meta.url);
 
@@ -100,6 +101,7 @@ test("audits all 50 custom questions and 400 generated exercises for clear answe
     ["advanced", advanced, 15],
   ];
   assert.equal(levels.reduce((sum, [, lessons]) => sum + lessons.length, 0), 50);
+  let soundCardCount = 0;
 
   for (const [level, lessons, expectedCount] of levels) {
     assert.equal(lessons.length, expectedCount);
@@ -110,6 +112,25 @@ test("audits all 50 custom questions and 400 generated exercises for clear answe
       );
       assert.ok(lesson.question.trim());
       assert.ok(lesson.sounds.length >= 3);
+      for (const sound of lesson.sounds) {
+        soundCardCount += 1;
+        const support = getCardChineseSupport(level, lesson.day, sound);
+        assert.ok(
+          support.summary.trim(),
+          `${level} Day ${lesson.day} ${sound.char}: missing Chinese support`,
+        );
+        assert.match(
+          support.summary,
+          /\p{Script=Han}/u,
+          `${level} Day ${lesson.day} ${sound.char}: support must contain Chinese`,
+        );
+        assert.equal(
+          support.label,
+          level === "beginner" && lesson.day <= 8
+            ? "發音提示"
+            : "中文理解",
+        );
+      }
 
       const exercises = buildLessonExercises(lesson, level);
       assert.equal(exercises.length, 8);
@@ -140,6 +161,7 @@ test("audits all 50 custom questions and 400 generated exercises for clear answe
       }
     }
   }
+  assert.equal(soundCardCount, 220);
 
   const beginnerDay3 = beginner[2];
   const beginnerDay3Fill = buildLessonExercises(
@@ -151,6 +173,23 @@ test("audits all 50 custom questions and 400 generated exercises for clear answe
   assert.match(beginnerDay3Fill.question, /韓文字母 \+ 韓文字母/);
   assert.ok(answersMatch("ㄴ+ㅓ", beginnerDay3Fill.answer));
   assert.match(beginner[16].question, /我做不到／沒有能力做/);
+
+  const beginnerDay10Support = beginner[9].sounds.map((sound) =>
+    getCardChineseSupport("beginner", 10, sound),
+  );
+  assert.deepEqual(
+    beginnerDay10Support.map(({ summary, translation }) => [
+      summary,
+      translation,
+    ]),
+    [
+      ["我／至於我", "我是敏洙。"],
+      ["學生", "我是學生。"],
+      ["國中生", "我是國中生。"],
+      ["臺灣", "我來自臺灣。"],
+      ["很高興見到你", "很高興認識你。"],
+    ],
+  );
 });
 
 test("audits every five-day checkpoint as a ten-question cumulative review", async () => {

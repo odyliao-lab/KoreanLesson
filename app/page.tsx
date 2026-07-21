@@ -12,6 +12,7 @@ import {
   buildLessonExercises,
   type PracticeExercise,
 } from "./learning-exercises";
+import { getCardChineseSupport } from "./card-chinese-support";
 
 type View = "home" | "map" | "journal" | "lesson" | "coach";
 type Level = "beginner" | "intermediate" | "advanced";
@@ -789,7 +790,7 @@ export default function Home() {
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [completedPractice, setCompletedPractice] = useState<number[]>([]);
   const [mistakes, setMistakes] = useState<Record<string, number>>({});
-  const [showCardHints, setShowCardHints] = useState(false);
+  const [showCardHints, setShowCardHints] = useState(true);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [completionDates, setCompletionDates] = useState<
     Record<string, string>
@@ -1148,7 +1149,7 @@ export default function Home() {
     setDraftAnswer("");
     setPracticeIndex(0);
     setCompletedPractice([]);
-    setShowCardHints(false);
+    setShowCardHints(true);
     setTimerSeconds(15 * 60);
     setTimerRunning(false);
     navigate("lesson");
@@ -2353,27 +2354,53 @@ export default function Home() {
                   <div className="vocabulary-head">
                     <div>
                       <strong>今日單字卡</strong>
-                      <small>點卡片播放韓語，先回想再查看提示</small>
+                      <small>點卡片播放韓語；中文輔助預設顯示，也可隨時隱藏自我測驗</small>
                     </div>
                     <button onClick={() => setShowCardHints((shown) => !shown)}>
-                      {showCardHints ? "隱藏提示" : "顯示提示"}
+                      {showCardHints ? "隱藏中文輔助" : "顯示中文輔助"}
                     </button>
                   </div>
                   <div className="sound-grid vocabulary-card-grid">
-                    {lesson.sounds.map((sound) => (
-                      <button
-                        key={sound.char}
-                        onClick={() => speak(sound.label)}
-                        aria-label={`播放 ${sound.label} 發音`}
-                      >
-                        <strong>{sound.char}</strong>
-                        <span>{sound.label}</span>
-                        <small className={showCardHints ? "" : "hint-hidden"}>
-                          {showCardHints ? sound.hint : "想一想意思，再顯示提示"}
-                        </small>
-                        <i>♫</i>
-                      </button>
-                    ))}
+                    {lesson.sounds.map((sound) => {
+                      const support = getCardChineseSupport(
+                        activeLevel,
+                        activeDay,
+                        sound,
+                      );
+                      return (
+                        <button
+                          key={sound.char}
+                          onClick={() => speak(sound.label)}
+                          aria-label={`播放 ${sound.label} 發音`}
+                        >
+                          <strong>{sound.char}</strong>
+                          <span>{sound.label}</span>
+                          <span
+                            className={`card-chinese-support ${
+                              showCardHints ? "" : "hint-hidden"
+                            }`}
+                          >
+                            {showCardHints ? (
+                              <>
+                                <small>
+                                  <b>{support.label}</b>
+                                  {support.summary}
+                                </small>
+                                {support.translation && (
+                                  <small className="sentence-translation">
+                                    <b>例句翻譯</b>
+                                    {support.translation}
+                                  </small>
+                                )}
+                              </>
+                            ) : (
+                              <small>先回想意思，再顯示中文輔助</small>
+                            )}
+                          </span>
+                          <i>♫</i>
+                        </button>
+                      );
+                    })}
                   </div>
                   <div className="lesson-actions">
                     <button
