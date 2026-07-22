@@ -1551,6 +1551,22 @@ footer {
   cursor: pointer;
 }
 
+.lesson-link-button {
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid rgba(117, 237, 255, 0.2);
+  border-radius: 13px;
+  background: rgba(117, 237, 255, 0.07);
+  color: #c9f8ff;
+}
+
+.lesson-link-status {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .teacher-support > div {
   display: grid;
   gap: 10px;
@@ -2153,6 +2169,72 @@ footer p {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+.pronunciation-lab {
+  display: grid;
+  width: min(100%, 760px);
+  gap: 14px;
+  margin: 26px auto 0;
+  padding: 20px;
+  border: 1px solid rgba(117, 237, 255, 0.2);
+  border-radius: 22px;
+  background: rgba(8, 11, 42, 0.56);
+  text-align: left;
+}
+
+.pronunciation-lab h3,
+.pronunciation-lab p {
+  margin: 0;
+}
+
+.pronunciation-lab > div:first-child {
+  display: grid;
+  gap: 7px;
+}
+
+.pronunciation-lab audio {
+  width: 100%;
+}
+
+.recording-actions,
+.pronunciation-rating {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.recording-actions button,
+.pronunciation-rating button {
+  min-height: 48px;
+  padding: 0 15px;
+  border: 1px solid rgba(117, 237, 255, 0.24);
+  border-radius: 13px;
+  background: rgba(117, 237, 255, 0.08);
+}
+
+.recording-actions .recording-live {
+  border-color: rgba(255, 143, 202, 0.45);
+  background: rgba(255, 75, 128, 0.18);
+  color: #ffd1e3;
+}
+
+.pronunciation-rating {
+  margin: 0;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+}
+
+.pronunciation-rating legend {
+  padding: 0 7px;
+  color: var(--muted);
+}
+
+.pronunciation-rating button.active {
+  border-color: rgba(117, 247, 207, 0.5);
+  background: rgba(65, 167, 128, 0.24);
+  color: #caffea;
 }
 
 .card-chinese-support {
@@ -2904,6 +2986,16 @@ textarea:focus-visible {
   line-height: 1.55;
 }
 
+.remove-member-button {
+  justify-self: start;
+  margin-top: 5px;
+  padding: 5px 8px;
+  border: 0;
+  background: transparent;
+  color: #ffc4d4;
+  font-size: 0.72rem;
+}
+
 .empty-class {
   color: var(--muted);
 }
@@ -2917,8 +3009,32 @@ textarea:focus-visible {
 }
 
 .assignment-panel,
-.assignment-list {
+.assignment-list,
+.parent-link-panel {
   grid-column: 1 / -1;
+}
+
+.parent-link-panel {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.parent-link-panel > strong,
+.parent-link-panel > small {
+  grid-column: 1 / -1;
+}
+
+.parent-link-panel select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(139, 229, 255, 0.18);
+  border-radius: 11px;
+  background: #12163b;
+  color: #fff;
 }
 
 .assignment-panel {
@@ -2951,7 +3067,7 @@ textarea:focus-visible {
   gap: 9px;
 }
 
-.assignment-list span,
+.assignment-list > article,
 .student-assignments button {
   display: grid;
   gap: 4px;
@@ -2961,6 +3077,48 @@ textarea:focus-visible {
   background: rgba(255, 255, 255, 0.045);
   color: #fff;
   text-align: left;
+}
+
+.assignment-result-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(280px, 1.4fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.assignment-result-card > div:first-child,
+.assignment-result-card details {
+  display: grid;
+  gap: 4px;
+}
+
+.assignment-result-card details {
+  grid-column: 1 / -1;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.assignment-result-card summary {
+  color: #bfefff;
+  cursor: pointer;
+}
+
+.assignment-result-card p {
+  margin: 5px 0 0;
+}
+
+.assignment-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.assignment-metrics span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(117, 237, 255, 0.08);
+  color: #d6faff;
+  font-size: 0.78rem;
 }
 
 .assignment-list small,
@@ -2976,6 +3134,32 @@ textarea:focus-visible {
 .student-assignments h3 {
   margin: 0;
   color: #fff;
+}
+
+.linked-student-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.linked-student-list h3 {
+  margin: 0;
+}
+
+.linked-student-list article {
+  display: grid;
+  gap: 5px;
+  padding: 15px;
+  border: 1px solid rgba(139, 229, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.linked-student-list span,
+.linked-student-list p,
+.linked-student-list small {
+  margin: 0;
+  color: var(--muted);
 }
 
 .question-report-inbox {
@@ -3326,5 +3510,55 @@ textarea:focus-visible {
 
   .detailed-mistake-list {
     grid-template-columns: 1fr;
+  }
+
+  .parent-link-panel,
+  .assignment-result-card {
+    grid-template-columns: 1fr;
+  }
+
+  .assignment-result-card details {
+    grid-column: auto;
+  }
+}
+
+/* iPad and touch-first browser safeguards */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  select,
+  input:not([type="checkbox"]),
+  .data-tool-actions label {
+    min-height: 48px;
+  }
+
+  button,
+  summary,
+  label {
+    touch-action: manipulation;
+  }
+
+  .lesson-stage-list button,
+  .answer-grid button {
+    min-height: 64px;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  html {
+    scroll-padding-bottom: 38vh;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+
+  .site-shell {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .topbar {
+    margin-top: env(safe-area-inset-top);
   }
 }

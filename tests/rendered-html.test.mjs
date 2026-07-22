@@ -153,3 +153,44 @@ test("builds eight daily exercises and ten cumulative checkpoint questions witho
     10,
   );
 });
+
+test("ships P1 pronunciation, personalized review, assignments and class management contracts", async () => {
+  const [page, styles, privacy, schema, classesRoute, progressRoute, migration] =
+    await Promise.all([
+      readFile(new URL("app/page.tsx", root), "utf8"),
+      readFile(new URL("app/globals.css", root), "utf8"),
+      readFile(new URL("app/privacy/page.tsx", root), "utf8"),
+      readFile(new URL("db/schema.ts", root), "utf8"),
+      readFile(new URL("app/api/classes/route.ts", root), "utf8"),
+      readFile(new URL("app/api/assignments/progress/route.ts", root), "utf8"),
+      readFile(new URL("drizzle/0003_hard_psynapse.sql", root), "utf8"),
+    ]);
+
+  assert.match(page, /navigator\.mediaDevices\.getUserMedia/);
+  assert.match(page, /new MediaRecorder/);
+  assert.match(page, /錄音只留在這個頁面，不會上傳/);
+  assert.match(privacy, /不會上傳、同步、加入班級報告/);
+  assert.match(page, /openMistakeReview/);
+  assert.match(page, /hintUsage/);
+  assert.match(page, /errorType/);
+  assert.match(page, /searchParams\.set\("question"/);
+  assert.match(page, /複製目前學習位置/);
+  assert.match(page, /regenerate-code/);
+  assert.match(page, /link-parent/);
+  assert.match(page, /逾期未交/);
+  assert.match(page, /重做/);
+  assert.match(classesRoute, /resource === "member"/);
+  assert.match(classesRoute, /resource === "assignment"/);
+  assert.match(classesRoute, /resource === "class"/);
+  assert.match(classesRoute, /averageScore/);
+  assert.match(classesRoute, /overdueCount/);
+  assert.match(progressRoute, /attemptCount/);
+  assert.match(progressRoute, /bestScore/);
+  assert.match(schema, /assignmentProgress/);
+  assert.match(schema, /parentStudentLinks/);
+  assert.match(migration, /CREATE TABLE `assignment_progress`/);
+  assert.match(migration, /CREATE TABLE `parent_student_links`/);
+  assert.match(styles, /\(hover: none\) and \(pointer: coarse\)/);
+  assert.match(styles, /-webkit-touch-callout/);
+  assert.match(styles, /safe-area-inset-bottom/);
+});

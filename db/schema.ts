@@ -39,6 +39,38 @@ export const assignments = sqliteTable("assignments", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+export const assignmentProgress = sqliteTable(
+  "assignment_progress",
+  {
+    assignmentId: integer("assignment_id").notNull(),
+    studentEmail: text("student_email").notNull(),
+    score: integer("score").notNull(),
+    bestScore: integer("best_score").notNull(),
+    totalQuestions: integer("total_questions").notNull(),
+    attemptCount: integer("attempt_count").notNull().default(1),
+    completedAt: integer("completed_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.assignmentId, table.studentEmail] }),
+  ],
+);
+
+export const parentStudentLinks = sqliteTable(
+  "parent_student_links",
+  {
+    classCode: text("class_code").notNull(),
+    parentEmail: text("parent_email").notNull(),
+    studentEmail: text("student_email").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.classCode, table.parentEmail, table.studentEmail],
+    }),
+  ],
+);
+
 export const questionReports = sqliteTable("question_reports", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   classCode: text("class_code"),
