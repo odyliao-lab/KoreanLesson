@@ -28,9 +28,23 @@ export type PracticeExercise = {
   audio?: string;
   audioPath?: string;
   sourceDay?: number;
+  hintSteps: readonly [string, string];
+  explanation: string;
+  acceptedAnswers: readonly string[];
+  commonMistake: string;
+  teacherTip: string;
 };
 
-const punctuation = /[.,!?，。！？]/g;
+type BasePracticeExercise = Omit<
+  PracticeExercise,
+  | "hintSteps"
+  | "explanation"
+  | "acceptedAnswers"
+  | "commonMistake"
+  | "teacherTip"
+>;
+
+const punctuation = /[.,!?，。！？、:：;；"'“”‘’]/g;
 
 export function normalizeAnswer(value: string) {
   return value
@@ -42,8 +56,20 @@ export function normalizeAnswer(value: string) {
     .toLocaleLowerCase("ko-KR");
 }
 
-export function answersMatch(value: string, answer: string) {
-  return normalizeAnswer(value) === normalizeAnswer(answer);
+export function answersMatch(
+  value: string,
+  answer: string,
+  acceptedAnswers: readonly string[] = [],
+) {
+  const submitted = normalizeAnswer(value);
+  const submittedCompact = submitted.replace(/\s+/g, "");
+  return unique([answer, ...acceptedAnswers]).some((candidate) => {
+    const normalized = normalizeAnswer(candidate);
+    return (
+      submitted === normalized ||
+      submittedCompact === normalized.replace(/\s+/g, "")
+    );
+  });
 }
 
 function unique(values: readonly string[]) {
@@ -90,6 +116,117 @@ function buildFillPrompt(target: ExerciseLesson["sounds"][number]) {
   return `請輸入字卡「${target.char}」下方的完整韓文內容。提示：${target.hint}。`;
 }
 
+function acceptedVariants(exercise: BasePracticeExercise) {
+  if (exercise.interaction !== "text") return [exercise.answer];
+  return unique([
+    exercise.answer,
+    exercise.answer.replace(punctuation, "").trim(),
+    exercise.answer.replace(/\s+/g, ""),
+  ]);
+}
+
+function addLearningSupport(
+  exercise: BasePracticeExercise,
+  lesson: ExerciseLesson,
+): PracticeExercise {
+  const relatedCard = lesson.sounds.find(
+    (sound) =>
+      sound.label === exercise.answer || sound.char === exercise.answer,
+  );
+  const cardHint = relatedCard?.hint ?? "回想今日教學示範的規則與語序";
+  const supportByKind: Record<
+    ExerciseKind,
+    {
+      hints: [string, string];
+      focus: string;
+      mistake: string;
+      teacher: string;
+    }
+  > = {
+    choice: {
+      hints: [
+        "先找出題目正在考的母音、助詞或句尾規則。",
+        "逐一讀出選項，排除不符合今日教學規則的寫法。",
+      ],
+      focus: "今日教學的核心規則",
+      mistake: "只憑外形或中文直覺選答案，沒有檢查韓文規則。",
+      teacher: "請學生先說出規則，再請他重新比較每個選項。",
+    },
+    match: {
+      hints: [
+        `先回想這張字卡的提示：${cardHint}。`,
+        "答案要選字卡下方的完整韓文內容，不是只選其中一個字。",
+      ],
+      focus: "字卡與完整韓文內容的配對",
+      mistake: "只記得字卡外形，沒有一起記住例詞或例句。",
+      teacher: "遮住答案，請學生先讀字卡，再說出完整例詞或例句。",
+    },
+    listen: {
+      hints: [
+        "先用慢速播放一次，只抓住最清楚的音節。",
+        "第二次注意句尾與詞間停頓，再和選項逐句比對。",
+      ],
+      focus: "固定語音中的完整句子",
+      mistake: "只聽到開頭就作答，忽略句尾或中間的詞。",
+      teacher: "把語音分成兩到三段跟讀，再播放完整句子讓學生選。",
+    },
+    order: {
+      hints: [
+        "先找句子的主題、受詞或地點，再找最後的動詞或句尾。",
+        "韓文通常把動作放在句尾；重新檢查助詞是否跟在正確名詞後。",
+      ],
+      focus: "韓文詞序與句尾位置",
+      mistake: "直接套用中文詞序，或把動詞放在句子中間。",
+      teacher: "用斜線切分句子成分，請學生先排出句尾，再補前面的成分。",
+    },
+    fill: {
+      hints: [
+        `回到目標字卡，提示是：${cardHint}。`,
+        "請輸入字卡下方的完整韓文內容；字母組合題要保留加號，句子要注意空格。",
+      ],
+      focus: "字卡的完整韓文拼寫",
+      mistake: "漏字、混淆相近母音，或只輸入題目中的一部分。",
+      teacher: "請學生先慢慢念一次，再按音節逐段寫出，最後對照字卡。",
+    },
+    correction: {
+      hints: [
+        `先利用字卡提示判斷意思或發音：${cardHint}。`,
+        "逐字比較選項，特別注意容易混淆的母音、 받침 與句尾。",
+      ],
+      focus: "完整韓文內容的校對",
+      mistake: "只看大致相似就作答，沒有逐個音節核對。",
+      teacher: "讓學生指出選項間唯一不同的音節，再判斷哪個符合字卡。",
+    },
+    translation: {
+      hints: [
+        `先圈出中文提示中的關鍵意思：${cardHint}。`,
+        "比較每個韓文選項的核心單字與句尾，不要只看第一個字。",
+      ],
+      focus: "中文提示與韓文例句的對應",
+      mistake: "只依照單一熟悉單字選答案，忽略整句意思。",
+      teacher: "請學生先說出句中的關鍵單字，再確認整句是否符合中文提示。",
+    },
+    dictation: {
+      hints: [
+        "先慢速播放，記下聽得最清楚的音節或單字。",
+        "再播放一次補齊句尾與空格；標點不計分，詞間空格可有合理差異。",
+      ],
+      focus: "固定語音的完整韓文聽寫",
+      mistake: "只寫下部分內容，或把相近母音與句尾聽成另一個字。",
+      teacher: "分段播放並讓學生跟讀；確認聽懂後，再播放完整語音重新聽寫。",
+    },
+  };
+  const support = supportByKind[exercise.kind];
+  return {
+    ...exercise,
+    hintSteps: support.hints,
+    explanation: `正確答案是「${exercise.answer}」。這題練習的是${support.focus}；請把答案和題目提示重新對照一次。`,
+    acceptedAnswers: acceptedVariants(exercise),
+    commonMistake: support.mistake,
+    teacherTip: support.teacher,
+  };
+}
+
 export function buildLessonExercises(
   lesson: ExerciseLesson,
   level: string,
@@ -112,7 +249,7 @@ export function buildLessonExercises(
   const correctionTarget = sounds[(lesson.day + 1) % sounds.length];
   const isBeginnerPhonics = level === "beginner" && lesson.day <= 8;
 
-  return [
+  const exercises: BasePracticeExercise[] = [
     {
       id: `day-${lesson.day}-choice`,
       kind: "choice",
@@ -195,6 +332,7 @@ export function buildLessonExercises(
       audioPath: audioPath(level, lesson.day),
     },
   ];
+  return exercises.map((exercise) => addLearningSupport(exercise, lesson));
 }
 
 export function buildCheckpointExercises(

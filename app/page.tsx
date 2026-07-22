@@ -25,6 +25,31 @@ type StudySession = {
   minutes: number;
 };
 
+type DetailedMistake = {
+  key: string;
+  level: Level;
+  day: number;
+  exerciseId: string;
+  kicker: string;
+  question: string;
+  submittedAnswer: string;
+  correctAnswer: string;
+  attempts: number;
+  resolved: boolean;
+  updatedAt: string;
+};
+
+type QuestionReport = {
+  key: string;
+  level: Level;
+  day: number;
+  exerciseId: string;
+  question: string;
+  submittedAnswer: string;
+  expectedAnswer: string;
+  createdAt: string;
+};
+
 type SessionUser = {
   displayName: string;
   email: string;
@@ -790,6 +815,17 @@ export default function Home() {
   const [practiceIndex, setPracticeIndex] = useState(0);
   const [completedPractice, setCompletedPractice] = useState<number[]>([]);
   const [mistakes, setMistakes] = useState<Record<string, number>>({});
+  const [attemptCounts, setAttemptCounts] = useState<Record<string, number>>(
+    {},
+  );
+  const [revealedAnswers, setRevealedAnswers] = useState<
+    Record<string, boolean>
+  >({});
+  const [detailedMistakes, setDetailedMistakes] = useState<
+    Record<string, DetailedMistake>
+  >({});
+  const [questionReports, setQuestionReports] = useState<QuestionReport[]>([]);
+  const [reportStatus, setReportStatus] = useState("");
   const [showCardHints, setShowCardHints] = useState(true);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [completionDates, setCompletionDates] = useState<
@@ -837,6 +873,12 @@ export default function Home() {
       );
       const savedNotes = localStorage.getItem("starlight-korean-notes");
       const savedMistakes = localStorage.getItem("starlight-korean-mistakes");
+      const savedDetailedMistakes = localStorage.getItem(
+        "starlight-korean-detailed-mistakes",
+      );
+      const savedQuestionReports = localStorage.getItem(
+        "starlight-korean-question-reports",
+      );
       const savedDates = localStorage.getItem(
         "starlight-korean-completion-dates",
       );
@@ -858,6 +900,10 @@ export default function Home() {
         setCompletedAdvancedDays(JSON.parse(savedAdvanced));
       if (savedNotes) setNotes(JSON.parse(savedNotes));
       if (savedMistakes) setMistakes(JSON.parse(savedMistakes));
+      if (savedDetailedMistakes)
+        setDetailedMistakes(JSON.parse(savedDetailedMistakes));
+      if (savedQuestionReports)
+        setQuestionReports(JSON.parse(savedQuestionReports));
       if (savedDates) setCompletionDates(JSON.parse(savedDates));
       if (savedSessions) setStudySessions(JSON.parse(savedSessions));
       if (savedContrast === "true") setHighContrast(true);
@@ -926,6 +972,14 @@ export default function Home() {
       JSON.stringify(mistakes),
     );
     localStorage.setItem(
+      "starlight-korean-detailed-mistakes",
+      JSON.stringify(detailedMistakes),
+    );
+    localStorage.setItem(
+      "starlight-korean-question-reports",
+      JSON.stringify(questionReports),
+    );
+    localStorage.setItem(
       "starlight-korean-completion-dates",
       JSON.stringify(completionDates),
     );
@@ -946,6 +1000,8 @@ export default function Home() {
     completedAdvancedDays,
     notes,
     mistakes,
+    detailedMistakes,
+    questionReports,
     completionDates,
     studySessions,
     highContrast,
@@ -1024,9 +1080,14 @@ export default function Home() {
     ? buildCheckpointExercises(activeLessons, activeDay, activeLevel)
     : buildLessonExercises(lesson, activeLevel);
   const currentExercise = practiceExercises[practiceIndex] ?? practiceExercises[0];
+  const currentExerciseKey = `${activeLevel}-${activeDay}-${currentExercise.id}`;
+  const currentAttempts = attemptCounts[currentExerciseKey] ?? 0;
+  const isAnswerRevealed =
+    currentAttempts >= 3 || Boolean(revealedAnswers[currentExerciseKey]);
   const isPracticeCorrect = answersMatch(
     selectedAnswer,
     currentExercise.answer,
+    currentExercise.acceptedAnswers,
   );
   const currentGuide =
     guideProfiles.find((profile) => lesson.guide.startsWith(profile.key)) ??
@@ -1036,6 +1097,10 @@ export default function Home() {
   const mistakeDays = Object.entries(mistakes)
     .filter(([key, count]) => key.startsWith(`${activeLevel}-`) && count > 0)
     .sort(([, a], [, b]) => b - a)
+    .slice(0, 4);
+  const unresolvedMistakes = Object.values(detailedMistakes)
+    .filter((item) => item.level === activeLevel && !item.resolved)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 4);
   const totalMinutes = studySessions.reduce(
     (total, session) => total + session.minutes,
@@ -1149,6 +1214,9 @@ export default function Home() {
     setDraftAnswer("");
     setPracticeIndex(0);
     setCompletedPractice([]);
+    setAttemptCounts({});
+    setRevealedAnswers({});
+    setReportStatus("");
     setShowCardHints(true);
     setTimerSeconds(15 * 60);
     setTimerRunning(false);
@@ -1211,26 +1279,73 @@ export default function Home() {
 
   function choosePracticeAnswer(option: string) {
     setSelectedAnswer(option);
-    if (answersMatch(option, currentExercise.answer)) {
+    if (
+      answersMatch(
+        option,
+        currentExercise.answer,
+        currentExercise.acceptedAnswers,
+      )
+    ) {
       setCompletedPractice((current) =>
         current.includes(practiceIndex)
           ? current
           : [...current, practiceIndex],
       );
+      setDetailedMistakes((current) => {
+        const previous = current[currentExerciseKey];
+        if (!previous) return current;
+        return {
+          ...current,
+          [currentExerciseKey]: {
+            ...previous,
+            resolved: true,
+            updatedAt: new Date().toISOString(),
+          },
+        };
+      });
       return;
     }
+    const nextAttempts = currentAttempts + 1;
+    setAttemptCounts((current) => ({
+      ...current,
+      [currentExerciseKey]: (current[currentExerciseKey] ?? 0) + 1,
+    }));
     setMistakes((current) => ({
       ...current,
       [mistakeKey]: (current[mistakeKey] ?? 0) + 1,
     }));
+    setDetailedMistakes((current) => ({
+      ...current,
+      [currentExerciseKey]: {
+        key: currentExerciseKey,
+        level: activeLevel,
+        day: activeDay,
+        exerciseId: currentExercise.id,
+        kicker: currentExercise.kicker,
+        question: currentExercise.question,
+        submittedAnswer: option,
+        correctAnswer: currentExercise.answer,
+        attempts: nextAttempts,
+        resolved: false,
+        updatedAt: new Date().toISOString(),
+      },
+    }));
   }
 
   function advancePractice() {
-    if (!answersMatch(selectedAnswer, currentExercise.answer)) return;
+    if (
+      !answersMatch(
+        selectedAnswer,
+        currentExercise.answer,
+        currentExercise.acceptedAnswers,
+      )
+    )
+      return;
     if (practiceIndex < practiceExercises.length - 1) {
       setPracticeIndex((index) => index + 1);
       setSelectedAnswer("");
       setDraftAnswer("");
+      setReportStatus("");
       return;
     }
     setActiveStage(3);
@@ -1238,12 +1353,14 @@ export default function Home() {
 
   function learningPayload() {
     return {
-      version: 2,
+      version: 3,
       completedDays,
       completedIntermediateDays,
       completedAdvancedDays,
       notes,
       mistakes,
+      detailedMistakes,
+      questionReports,
       completionDates,
       studySessions,
     };
@@ -1260,10 +1377,44 @@ export default function Home() {
       setNotes(data.notes as Record<string, string>);
     if (data.mistakes && typeof data.mistakes === "object")
       setMistakes(data.mistakes as Record<string, number>);
+    if (data.detailedMistakes && typeof data.detailedMistakes === "object")
+      setDetailedMistakes(
+        data.detailedMistakes as Record<string, DetailedMistake>,
+      );
+    if (Array.isArray(data.questionReports))
+      setQuestionReports(data.questionReports as QuestionReport[]);
     if (data.completionDates && typeof data.completionDates === "object")
       setCompletionDates(data.completionDates as Record<string, string>);
     if (Array.isArray(data.studySessions))
       setStudySessions(data.studySessions as StudySession[]);
+  }
+
+  function markQuestionIssue() {
+    const report: QuestionReport = {
+      key: `${currentExerciseKey}-${Date.now()}`,
+      level: activeLevel,
+      day: activeDay,
+      exerciseId: currentExercise.id,
+      question: currentExercise.question,
+      submittedAnswer: selectedAnswer || draftAnswer || "尚未作答",
+      expectedAnswer: currentExercise.answer,
+      createdAt: new Date().toISOString(),
+    };
+    setQuestionReports((current) => [report, ...current].slice(0, 100));
+    setReportStatus("已在這台裝置標記此題。");
+    const reportText = [
+      "별빛韓語研究所題目回報",
+      `階段：${activeLevel}`,
+      `課程：Day ${activeDay}`,
+      `題型：${currentExercise.kicker}`,
+      `題目：${currentExercise.question}`,
+      `學生答案：${report.submittedAnswer}`,
+      `系統答案：${currentExercise.answer}`,
+    ].join("\n");
+    navigator.clipboard
+      ?.writeText(reportText)
+      .then(() => setReportStatus("已標記並複製回報資料，可直接貼給老師。"))
+      .catch(() => setReportStatus("已在這台裝置標記此題。"));
   }
 
   function exportLearningData() {
@@ -1891,21 +2042,43 @@ export default function Home() {
                   </span>
                 </div>
                 {mistakeDays.length ? (
-                  <div className="mistake-list">
-                    {mistakeDays.map(([key, count]) => {
-                      const day = Number(key.split("-")[1]);
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => openLesson(day, activeLevel)}
-                        >
-                          <span>DAY {day}</span>
-                          <strong>{activeTitles[day - 1]}</strong>
-                          <small>{count} 次錯誤 · 重新挑戰 →</small>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <>
+                    <div className="mistake-list">
+                      {mistakeDays.map(([key, count]) => {
+                        const day = Number(key.split("-")[1]);
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => openLesson(day, activeLevel)}
+                          >
+                            <span>DAY {day}</span>
+                            <strong>{activeTitles[day - 1]}</strong>
+                            <small>{count} 次錯誤 · 重新挑戰 →</small>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {unresolvedMistakes.length > 0 && (
+                      <div className="detailed-mistake-list">
+                        <h3>最近需要協助的題目</h3>
+                        {unresolvedMistakes.map((item) => (
+                          <button
+                            key={item.key}
+                            onClick={() => openLesson(item.day, item.level)}
+                          >
+                            <span>
+                              Day {item.day} · {item.kicker}
+                            </span>
+                            <strong>{item.question}</strong>
+                            <small>
+                              上次回答：{item.submittedAnswer} · 正確答案：
+                              {item.correctAnswer}
+                            </small>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <p className="mistake-empty">
                     還沒有錯題紀錄。完成互動練習後，需複習的題目會出現在這裡。
@@ -2531,9 +2704,90 @@ export default function Home() {
                     {selectedAnswer
                       ? isPracticeCorrect
                         ? "정답이에요! 答對了，這顆星已經亮起來。"
-                        : "아직 아니에요. 再看一次提示；這題已加入錯題星球。"
+                        : currentAttempts >= 3
+                          ? "아직 아니에요. 完整答案與解析已開啟，理解後再答一次。"
+                          : currentAttempts === 2
+                            ? "아직 아니에요. 第二層提示已開啟，再比較一次。"
+                            : "아직 아니에요. 先看第一層提示；這題已加入錯題星球。"
                       : ""}
                   </div>
+                  {selectedAnswer && !isPracticeCorrect && (
+                    <section className="solution-support" aria-label="解題支援">
+                      <div className="solution-support-head">
+                        <div>
+                          <p>LEARNING SUPPORT</p>
+                          <h4>解題支援 · 第 {currentAttempts} 次嘗試</h4>
+                        </div>
+                        <span>{Math.min(currentAttempts, 3)} / 3</span>
+                      </div>
+                      <ol className="hint-steps">
+                        <li>
+                          <strong>提示一</strong>
+                          <span>{currentExercise.hintSteps[0]}</span>
+                        </li>
+                        {currentAttempts >= 2 && (
+                          <li>
+                            <strong>提示二</strong>
+                            <span>{currentExercise.hintSteps[1]}</span>
+                          </li>
+                        )}
+                      </ol>
+                      {isAnswerRevealed ? (
+                        <div className="answer-explanation">
+                          <p className="answer-label">正確答案</p>
+                          <strong lang="ko">{currentExercise.answer}</strong>
+                          <p>{currentExercise.explanation}</p>
+                          <small>
+                            可接受寫法：
+                            {currentExercise.acceptedAnswers.join("、")}
+                          </small>
+                          <em>看完後請重新作答一次，答對才能前往下一題。</em>
+                        </div>
+                      ) : (
+                        <button
+                          className="reveal-answer-button"
+                          onClick={() =>
+                            setRevealedAnswers((current) => ({
+                              ...current,
+                              [currentExerciseKey]: true,
+                            }))
+                          }
+                        >
+                          我需要看完整答案與解析
+                        </button>
+                      )}
+                      <details className="teacher-support">
+                        <summary>家長／老師協助（會顯示答案）</summary>
+                        <div>
+                          <p>
+                            <b>正確答案：</b>
+                            <span lang="ko">{currentExercise.answer}</span>
+                          </p>
+                          <p>
+                            <b>常見錯誤：</b>
+                            {currentExercise.commonMistake}
+                          </p>
+                          <p>
+                            <b>建議教法：</b>
+                            {currentExercise.teacherTip}
+                          </p>
+                        </div>
+                      </details>
+                      <div className="question-report-actions">
+                        <button onClick={markQuestionIssue}>
+                          這題可能有問題 · 標記並複製資料
+                        </button>
+                        {reportStatus && <small>{reportStatus}</small>}
+                      </div>
+                    </section>
+                  )}
+                  {selectedAnswer && isPracticeCorrect && (
+                    <details className="correct-explanation">
+                      <summary>查看本題解析</summary>
+                      <p>{currentExercise.explanation}</p>
+                      <small>常見錯誤：{currentExercise.commonMistake}</small>
+                    </details>
+                  )}
                   <button
                     className="primary-button"
                     disabled={!isPracticeCorrect}

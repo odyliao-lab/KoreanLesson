@@ -158,6 +158,22 @@ test("audits all 50 custom questions and 400 generated exercises for clear answe
           assert.match(exercise.question, /字卡「.+」/);
           assert.equal(exercise.kicker, "提示選句");
         }
+        assert.equal(exercise.hintSteps.length, 2);
+        exercise.hintSteps.forEach((hint) => assert.ok(hint.trim()));
+        assert.ok(exercise.explanation.includes(exercise.answer));
+        assert.ok(exercise.acceptedAnswers.includes(exercise.answer));
+        assert.ok(exercise.commonMistake.trim());
+        assert.ok(exercise.teacherTip.trim());
+        if (exercise.interaction === "text") {
+          assert.ok(
+            answersMatch(
+              exercise.answer.replace(/\s+/g, ""),
+              exercise.answer,
+              exercise.acceptedAnswers,
+            ),
+            `${level} Day ${lesson.day} ${exercise.kind}: spacing tolerance failed`,
+          );
+        }
       }
     }
   }
@@ -172,6 +188,8 @@ test("audits all 50 custom questions and 400 generated exercises for clear answe
   assert.match(beginnerDay3Fill.question, /字卡「너」/);
   assert.match(beginnerDay3Fill.question, /韓文字母 \+ 韓文字母/);
   assert.ok(answersMatch("ㄴ+ㅓ", beginnerDay3Fill.answer));
+  assert.ok(answersMatch("야여요유", "야 여 요 유", ["야 여 요 유"]));
+  assert.ok(answersMatch("안녕하세요！", "안녕하세요.", ["안녕하세요"]));
   assert.match(beginner[16].question, /我做不到／沒有能力做/);
 
   const beginnerDay10Support = beginner[9].sounds.map((sound) =>
@@ -219,6 +237,11 @@ test("audits every five-day checkpoint as a ten-question cumulative review", asy
     for (let day = 5; day <= lessons.length; day += 5) {
       const checkpoint = buildCheckpointExercises(lessons, day, level);
       assert.equal(checkpoint.length, 10);
+      checkpoint.forEach((exercise) => {
+        assert.equal(exercise.hintSteps.length, 2);
+        assert.ok(exercise.explanation.includes(exercise.answer));
+        assert.ok(exercise.teacherTip.trim());
+      });
       assert.deepEqual(
         [...new Set(checkpoint.map((exercise) => exercise.sourceDay))],
         [day - 4, day - 3, day - 2, day - 1, day],

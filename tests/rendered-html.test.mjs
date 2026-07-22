@@ -37,6 +37,10 @@ test("keeps curriculum, sync, accessibility and offline contracts intact", async
   assert.equal((advanced.match(/^\s{4}day:\s*\d+,/gm) ?? []).length, 15);
   assert.match(page, /starlight-korean-progress/);
   assert.match(page, /starlight-korean-study-sessions/);
+  assert.match(page, /starlight-korean-detailed-mistakes/);
+  assert.match(page, /starlight-korean-question-reports/);
+  assert.match(page, /LEARNING SUPPORT/);
+  assert.match(page, /家長／老師協助/);
   assert.match(page, /skip-link/);
   assert.match(page, /syncToCloud/);
   for (const kind of [
