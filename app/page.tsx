@@ -39,6 +39,8 @@ type DetailedMistake = {
   submittedAnswer: string;
   correctAnswer: string;
   attempts: number;
+  hintLevel: number;
+  errorType: string;
   resolved: boolean;
   updatedAt: string;
 };
@@ -94,6 +96,25 @@ type CloudClass = {
     recentMistakes?: Array<Partial<DetailedMistake>>;
   }[];
   assignments?: ClassAssignment[];
+  parentLinks?: Array<{
+    classCode: string;
+    parentEmail: string;
+    studentEmail: string;
+  }>;
+};
+
+type AssignmentResult = {
+  assignmentId: number;
+  studentEmail: string;
+  displayName?: string;
+  score: number;
+  bestScore: number;
+  totalQuestions: number;
+  attemptCount: number;
+  redoCount: number;
+  completedAt: string;
+  updatedAt: string;
+  late: boolean;
 };
 
 type ClassAssignment = {
@@ -105,6 +126,21 @@ type ClassAssignment = {
   dueDate: string;
   completedCount?: number;
   totalStudents?: number;
+  averageScore?: number | null;
+  lateCount?: number;
+  overdueCount?: number;
+  results?: AssignmentResult[];
+  result?: AssignmentResult | null;
+};
+
+type LinkedStudent = {
+  classCode: string;
+  email: string;
+  displayName: string;
+  progress: number;
+  minutes: number;
+  mistakes: number;
+  recentMistakes?: Array<Partial<DetailedMistake>>;
 };
 
 type Lesson = {
@@ -848,6 +884,7 @@ export default function Home() {
   const [revealedAnswers, setRevealedAnswers] = useState<
     Record<string, boolean>
   >({});
+  const [hintUsage, setHintUsage] = useState<Record<string, number>>({});
   const [detailedMistakes, setDetailedMistakes] = useState<
     Record<string, DetailedMistake>
   >({});
@@ -879,6 +916,10 @@ export default function Home() {
     { classCode: string; role: string }[]
   >([]);
   const [assignments, setAssignments] = useState<ClassAssignment[]>([]);
+  const [linkedStudents, setLinkedStudents] = useState<LinkedStudent[]>([]);
+  const [parentLinkDrafts, setParentLinkDrafts] = useState<
+    Record<string, { parentEmail: string; studentEmail: string }>
+  >({});
   const [assignmentTitle, setAssignmentTitle] = useState("");
   const [assignmentLevel, setAssignmentLevel] =
     useState<Level>("beginner");
@@ -892,7 +933,15 @@ export default function Home() {
   const [timerSeconds, setTimerSeconds] = useState(15 * 60);
   const [timerRunning, setTimerRunning] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [recordingState, setRecordingState] = useState<
+    "idle" | "recording" | "ready" | "denied" | "unsupported"
+  >("idle");
+  const [recordingUrl, setRecordingUrl] = useState("");
+  const [pronunciationRating, setPronunciationRating] = useState(0);
   const activeAudio = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const recordingChunks = useRef<Blob[]>([]);
+  const restoredUrl = useRef(false);
 
   useEffect(() => {
     try {
@@ -907,6 +956,9 @@ export default function Home() {
       const savedMistakes = localStorage.getItem("starlight-korean-mistakes");
       const savedDetailedMistakes = localStorage.getItem(
         "starlight-korean-detailed-mistakes",
+      );
+      const savedHintUsage = localStorage.getItem(
+        "starlight-korean-hint-usage",
       );
       const savedQuestionReports = localStorage.getItem(
         "starlight-korean-question-reports",
@@ -934,6 +986,7 @@ export default function Home() {
       if (savedMistakes) setMistakes(JSON.parse(savedMistakes));
       if (savedDetailedMistakes)
         setDetailedMistakes(JSON.parse(savedDetailedMistakes));
+      if (savedHintUsage) setHintUsage(JSON.parse(savedHintUsage));
       if (savedQuestionReports)
         setQuestionReports(JSON.parse(savedQuestionReports));
       if (savedDates) setCompletionDates(JSON.parse(savedDates));
@@ -946,6 +999,35 @@ export default function Home() {
     } catch {
       // The course remains usable when browser storage is unavailable.
     }
+    const params = new URLSearchParams(window.location.search);
+    const targetView = params.get("view") as View | null;
+    const targetLevel = params.get("level") as Level | null;
+    const targetDay = Number(params.get("day"));
+    const targetStage = Number(params.get("stage"));
+    const targetQuestion = Number(params.get("question"));
+    if (
+      targetView === "lesson" &&
+      targetLevel &&
+      ["beginner", "intermediate", "advanced"].includes(targetLevel) &&
+      Number.isInteger(targetDay) &&
+      targetDay >= 1 &&
+      targetDay <= (targetLevel === "beginner" ? 20 : 15)
+    ) {
+      setView("lesson");
+      setActiveLevel(targetLevel);
+      setActiveDay(targetDay);
+      setActiveStage(
+        Number.isInteger(targetStage) ? Math.max(0, Math.min(5, targetStage)) : 0,
+      );
+      setPracticeIndex(
+        Number.isInteger(targetQuestion)
+          ? Math.max(0, Math.min(targetDay % 5 === 0 ? 9 : 7, targetQuestion))
+          : 0,
+      );
+    } else if (targetView && ["home", "map", "journal", "coach"].includes(targetView)) {
+      setView(targetView);
+    }
+    restoredUrl.current = true;
     setHydrated(true);
   }, []);
 
@@ -1008,6 +1090,10 @@ export default function Home() {
       JSON.stringify(detailedMistakes),
     );
     localStorage.setItem(
+      "starlight-korean-hint-usage",
+      JSON.stringify(hintUsage),
+    );
+    localStorage.setItem(
       "starlight-korean-question-reports",
       JSON.stringify(questionReports),
     );
@@ -1033,6 +1119,7 @@ export default function Home() {
     notes,
     mistakes,
     detailedMistakes,
+    hintUsage,
     questionReports,
     completionDates,
     studySessions,
@@ -1042,6 +1129,20 @@ export default function Home() {
     preferredVoiceName,
     hydrated,
   ]);
+
+  useEffect(() => {
+    if (!hydrated || !restoredUrl.current) return;
+    const params = new URLSearchParams();
+    if (view !== "home") params.set("view", view);
+    if (view === "lesson") {
+      params.set("level", activeLevel);
+      params.set("day", String(activeDay));
+      params.set("stage", String(activeStage));
+      if (activeStage === 2) params.set("question", String(practiceIndex));
+    }
+    const query = params.toString();
+    window.history.replaceState({}, "", query ? `/?${query}` : "/");
+  }, [hydrated, view, activeLevel, activeDay, activeStage, practiceIndex]);
 
   useEffect(() => {
     if (!timerRunning || timerSeconds <= 0) return;
@@ -1130,10 +1231,24 @@ export default function Home() {
     .filter(([key, count]) => key.startsWith(`${activeLevel}-`) && count > 0)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 4);
-  const unresolvedMistakes = Object.values(detailedMistakes)
-    .filter((item) => item.level === activeLevel && !item.resolved)
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .slice(0, 4);
+  const personalizedReviews = Object.values(detailedMistakes)
+    .filter((item) => !item.resolved)
+    .map((item) => ({
+      ...item,
+      priority:
+        item.attempts * 2 +
+        (item.hintLevel ?? hintUsage[item.key] ?? 0) +
+        Math.min(
+          5,
+          Math.floor(
+            (Date.now() - new Date(item.updatedAt).getTime()) / 86_400_000,
+          ),
+        ),
+    }))
+    .sort((a, b) => b.priority - a.priority || b.updatedAt.localeCompare(a.updatedAt));
+  const unresolvedMistakes = personalizedReviews
+    .filter((item) => item.level === activeLevel)
+    .slice(0, 6);
   const totalMinutes = studySessions.reduce(
     (total, session) => total + session.minutes,
     0,
@@ -1232,19 +1347,34 @@ export default function Home() {
   }, [activeCompleted.length, activeLevel, progress]);
 
   function navigate(next: View) {
+    if (next !== "lesson" && view === "lesson") clearRecording();
     setView(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function openLesson(day: number, level: Level = activeLevel) {
+  function clearRecording() {
+    mediaRecorder.current?.stream.getTracks().forEach((track) => track.stop());
+    mediaRecorder.current = null;
+    if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+    setRecordingUrl("");
+    setRecordingState("idle");
+    setPronunciationRating(0);
+  }
+
+  function openLesson(
+    day: number,
+    level: Level = activeLevel,
+    options?: { stage?: number; question?: number },
+  ) {
     const targetLessons = getLevelLessons(level);
     if (day < 1 || day > targetLessons.length) return;
+    clearRecording();
     setActiveLevel(level);
     setActiveDay(day);
-    setActiveStage(0);
+    setActiveStage(options?.stage ?? 0);
     setSelectedAnswer("");
     setDraftAnswer("");
-    setPracticeIndex(0);
+    setPracticeIndex(options?.question ?? 0);
     setCompletedPractice([]);
     setAttemptCounts({});
     setRevealedAnswers({});
@@ -1253,6 +1383,32 @@ export default function Home() {
     setTimerSeconds(15 * 60);
     setTimerRunning(false);
     navigate("lesson");
+  }
+
+  function openMistakeReview(item: DetailedMistake) {
+    const targetLessons = getLevelLessons(item.level);
+    const targetLesson = targetLessons[item.day - 1] as Lesson;
+    const exercises =
+      item.day % 5 === 0
+        ? buildCheckpointExercises(targetLessons, item.day, item.level)
+        : buildLessonExercises(targetLesson, item.level);
+    const question = Math.max(
+      0,
+      exercises.findIndex((exercise) => exercise.id === item.exerciseId),
+    );
+    openLesson(item.day, item.level, { stage: 2, question });
+  }
+
+  async function copyLessonLink() {
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", "lesson");
+    url.searchParams.set("level", activeLevel);
+    url.searchParams.set("day", String(activeDay));
+    url.searchParams.set("stage", String(activeStage));
+    if (activeStage === 2)
+      url.searchParams.set("question", String(practiceIndex));
+    await navigator.clipboard.writeText(url.toString());
+    setReportStatus("已複製目前學習位置，可在其他裝置接續。");
   }
 
   function speak(text: string, slow = false) {
@@ -1279,7 +1435,44 @@ export default function Home() {
     audio.play().catch(() => speak(fallbackText, slow));
   }
 
-  function completeLesson() {
+  async function startRecording() {
+    if (!("MediaRecorder" in window) || !navigator.mediaDevices?.getUserMedia) {
+      setRecordingState("unsupported");
+      return;
+    }
+    try {
+      if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+      setRecordingUrl("");
+      setPronunciationRating(0);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      recordingChunks.current = [];
+      recorder.addEventListener("dataavailable", (event) => {
+        if (event.data.size) recordingChunks.current.push(event.data);
+      });
+      recorder.addEventListener("stop", () => {
+        const blob = new Blob(recordingChunks.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+        setRecordingUrl(URL.createObjectURL(blob));
+        setRecordingState("ready");
+        stream.getTracks().forEach((track) => track.stop());
+      });
+      mediaRecorder.current = recorder;
+      recorder.start();
+      setRecordingState("recording");
+    } catch {
+      setRecordingState("denied");
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder.current?.state === "recording") {
+      mediaRecorder.current.stop();
+    }
+  }
+
+  async function completeLesson() {
     const key = `${activeLevel}-${activeDay}`;
     const completedAt = new Date().toISOString();
     const estimatedMinutes = Math.min(
@@ -1306,6 +1499,26 @@ export default function Home() {
       },
       ...current,
     ].slice(0, 300));
+    if (user) {
+      const firstTryCorrect = practiceExercises.filter(
+        (exercise) =>
+          (attemptCounts[`${activeLevel}-${activeDay}-${exercise.id}`] ?? 0) ===
+          0,
+      ).length;
+      const score = Math.round(
+        (firstTryCorrect / practiceExercises.length) * 100,
+      );
+      await fetch("/api/assignments/progress", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          level: activeLevel,
+          day: activeDay,
+          score,
+          totalQuestions: practiceExercises.length,
+        }),
+      }).catch(() => undefined);
+    }
     navigate(activeDay === activeLessons.length ? "journal" : "map");
   }
 
@@ -1338,6 +1551,7 @@ export default function Home() {
       return;
     }
     const nextAttempts = currentAttempts + 1;
+    const nextHintLevel = Math.min(2, nextAttempts);
     setAttemptCounts((current) => ({
       ...current,
       [currentExerciseKey]: (current[currentExerciseKey] ?? 0) + 1,
@@ -1345,6 +1559,13 @@ export default function Home() {
     setMistakes((current) => ({
       ...current,
       [mistakeKey]: (current[mistakeKey] ?? 0) + 1,
+    }));
+    setHintUsage((current) => ({
+      ...current,
+      [currentExerciseKey]: Math.max(
+        current[currentExerciseKey] ?? 0,
+        nextHintLevel,
+      ),
     }));
     setDetailedMistakes((current) => ({
       ...current,
@@ -1358,6 +1579,8 @@ export default function Home() {
         submittedAnswer: option,
         correctAnswer: currentExercise.answer,
         attempts: nextAttempts,
+        hintLevel: nextHintLevel,
+        errorType: currentExercise.kicker,
         resolved: false,
         updatedAt: new Date().toISOString(),
       },
@@ -1385,13 +1608,14 @@ export default function Home() {
 
   function learningPayload() {
     return {
-      version: 3,
+      version: 4,
       completedDays,
       completedIntermediateDays,
       completedAdvancedDays,
       notes,
       mistakes,
       detailedMistakes,
+      hintUsage,
       questionReports,
       completionDates,
       studySessions,
@@ -1413,6 +1637,8 @@ export default function Home() {
       setDetailedMistakes(
         data.detailedMistakes as Record<string, DetailedMistake>,
       );
+    if (data.hintUsage && typeof data.hintUsage === "object")
+      setHintUsage(data.hintUsage as Record<string, number>);
     if (Array.isArray(data.questionReports))
       setQuestionReports(data.questionReports as QuestionReport[]);
     if (data.completionDates && typeof data.completionDates === "object")
@@ -1604,12 +1830,14 @@ export default function Home() {
       owned?: CloudClass[];
       memberships?: { classCode: string; role: string }[];
       assignments?: ClassAssignment[];
+      linkedStudents?: LinkedStudent[];
       error?: string;
     };
     if (response.ok) {
       setOwnedClasses(result.owned ?? []);
       setMemberships(result.memberships ?? []);
       setAssignments(result.assignments ?? []);
+      setLinkedStudents(result.linkedStudents ?? []);
     } else {
       setSyncStatus(result.error ?? "無法讀取班級");
     }
@@ -1698,6 +1926,71 @@ export default function Home() {
     } else setSyncStatus(result.error ?? "指派失敗");
   }
 
+  async function regenerateClassCode(code: string) {
+    if (!window.confirm("確定重新產生邀請碼嗎？舊邀請碼會立即失效。")) return;
+    const response = await fetch("/api/classes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "regenerate-code", code }),
+    });
+    const result = (await response.json()) as { code?: string; error?: string };
+    if (response.ok) {
+      if (classCode === code) setClassCode(result.code ?? "");
+      setSyncStatus(`新邀請碼：${result.code}`);
+      await refreshClasses();
+    } else setSyncStatus(result.error ?? "無法更新邀請碼");
+  }
+
+  async function linkParentStudent(code: string) {
+    const draft = parentLinkDrafts[code];
+    if (!draft?.parentEmail || !draft.studentEmail) {
+      setSyncStatus("請先選擇家長與學生");
+      return;
+    }
+    const response = await fetch("/api/classes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "link-parent", code, ...draft }),
+    });
+    const result = (await response.json()) as { error?: string };
+    if (response.ok) {
+      setSyncStatus("家長與學生關聯已建立");
+      await refreshClasses();
+    } else setSyncStatus(result.error ?? "無法建立關聯");
+  }
+
+  async function removeClassResource(
+    resource: "member" | "assignment" | "class",
+    code: string,
+    options?: { email?: string; id?: number; label?: string },
+  ) {
+    const label = options?.label ?? "這筆資料";
+    if (!window.confirm(`確定刪除${label}嗎？此操作無法復原。`)) return;
+    const params = new URLSearchParams({ resource, code });
+    if (options?.email) params.set("email", options.email);
+    if (options?.id) params.set("id", String(options.id));
+    const response = await fetch(`/api/classes?${params}`, { method: "DELETE" });
+    const result = (await response.json()) as { error?: string };
+    if (response.ok) {
+      setSyncStatus(`${label}已刪除`);
+      await refreshClasses();
+    } else setSyncStatus(result.error ?? "刪除失敗");
+  }
+
+  async function leaveClass(code: string) {
+    if (!window.confirm(`確定離開班級 ${code} 嗎？`)) return;
+    const response = await fetch(
+      `/api/classes?${new URLSearchParams({ resource: "leave", code })}`,
+      { method: "DELETE" },
+    );
+    const result = (await response.json()) as { error?: string };
+    if (response.ok) {
+      if (classCode === code) setClassCode("");
+      setSyncStatus("已離開班級");
+      await refreshClasses();
+    } else setSyncStatus(result.error ?? "無法離開班級");
+  }
+
   function exportClassReport(course: CloudClass) {
     const rows = [
       ["姓名", "身分", "完成率", "學習分鐘", "錯題次數", "最後活動"],
@@ -1708,6 +2001,17 @@ export default function Home() {
         String(member.minutes ?? 0),
         String(member.mistakes ?? 0),
         member.lastActive?.slice(0, 10) ?? "",
+      ]),
+      [],
+      ["作業", "課程", "截止日期", "完成", "平均分數", "遲交", "逾期未交"],
+      ...(course.assignments ?? []).map((assignment) => [
+        assignment.title,
+        `${levelMeta[assignment.level].shortName} Day ${assignment.day}`,
+        assignment.dueDate,
+        `${assignment.completedCount ?? 0}/${assignment.totalStudents ?? 0}`,
+        assignment.averageScore == null ? "" : String(assignment.averageScore),
+        String(assignment.lateCount ?? 0),
+        String(assignment.overdueCount ?? 0),
       ]),
     ];
     const csv = rows
@@ -2182,19 +2486,19 @@ export default function Home() {
                     </div>
                     {unresolvedMistakes.length > 0 && (
                       <div className="detailed-mistake-list">
-                        <h3>最近需要協助的題目</h3>
+                        <h3>為你安排的逐題複習</h3>
                         {unresolvedMistakes.map((item) => (
                           <button
                             key={item.key}
-                            onClick={() => openLesson(item.day, item.level)}
+                            onClick={() => openMistakeReview(item)}
                           >
                             <span>
                               Day {item.day} · {item.kicker}
                             </span>
                             <strong>{item.question}</strong>
                             <small>
-                              上次回答：{item.submittedAnswer} · 正確答案：
-                              {item.correctAnswer}
+                              {item.errorType || "綜合練習"} · 錯誤 {item.attempts} 次 ·
+                              使用 {item.hintLevel ?? 0} 層提示 · 直接回到本題 →
                             </small>
                           </button>
                         ))}
@@ -2481,6 +2785,19 @@ export default function Home() {
                         <button onClick={() => exportClassReport(course)}>
                           匯出報告
                         </button>
+                        <button onClick={() => void regenerateClassCode(course.code)}>
+                          更新邀請碼
+                        </button>
+                        <button
+                          className="danger-action"
+                          onClick={() =>
+                            void removeClassResource("class", course.code, {
+                              label: `班級「${course.name}」`,
+                            })
+                          }
+                        >
+                          刪除班級
+                        </button>
                       </div>
                       <div>
                         <h3>{course.name}</h3>
@@ -2509,8 +2826,9 @@ export default function Home() {
                                       已完成指派：
                                       {
                                         course.assignments.filter((assignment) =>
-                                          member.completedKeys?.includes(
-                                            `${assignment.level}-${assignment.day}`,
+                                          assignment.results?.some(
+                                            (result) =>
+                                              result.studentEmail === member.email,
                                           ),
                                         ).length
                                       }
@@ -2536,9 +2854,86 @@ export default function Home() {
                                 </div>
                               </>
                             )}
+                            {member.role !== "teacher" && (
+                              <button
+                                className="remove-member-button"
+                                onClick={() =>
+                                  void removeClassResource(
+                                    "member",
+                                    course.code,
+                                    {
+                                      email: member.email,
+                                      label: `成員「${member.displayName}」`,
+                                    },
+                                  )
+                                }
+                              >
+                                移除成員
+                              </button>
+                            )}
                           </span>
                         ))}
                       </div>
+                      {!!course.members?.some((member) => member.role === "parent") &&
+                        !!course.members?.some((member) => member.role === "student") && (
+                          <div className="parent-link-panel">
+                            <strong>家長與學生關聯</strong>
+                            <select
+                              aria-label="選擇家長"
+                              value={parentLinkDrafts[course.code]?.parentEmail ?? ""}
+                              onChange={(event) =>
+                                setParentLinkDrafts((current) => ({
+                                  ...current,
+                                  [course.code]: {
+                                    parentEmail: event.target.value,
+                                    studentEmail:
+                                      current[course.code]?.studentEmail ?? "",
+                                  },
+                                }))
+                              }
+                            >
+                              <option value="">選擇家長</option>
+                              {course.members
+                                .filter((member) => member.role === "parent")
+                                .map((member) => (
+                                  <option key={member.email} value={member.email}>
+                                    {member.displayName}
+                                  </option>
+                                ))}
+                            </select>
+                            <select
+                              aria-label="選擇學生"
+                              value={parentLinkDrafts[course.code]?.studentEmail ?? ""}
+                              onChange={(event) =>
+                                setParentLinkDrafts((current) => ({
+                                  ...current,
+                                  [course.code]: {
+                                    parentEmail:
+                                      current[course.code]?.parentEmail ?? "",
+                                    studentEmail: event.target.value,
+                                  },
+                                }))
+                              }
+                            >
+                              <option value="">選擇學生</option>
+                              {course.members
+                                .filter((member) => member.role === "student")
+                                .map((member) => (
+                                  <option key={member.email} value={member.email}>
+                                    {member.displayName}
+                                  </option>
+                                ))}
+                            </select>
+                            <button onClick={() => void linkParentStudent(course.code)}>
+                              建立關聯
+                            </button>
+                            {!!course.parentLinks?.length && (
+                              <small>
+                                已建立 {course.parentLinks.length} 組家庭關聯
+                              </small>
+                            )}
+                          </div>
+                        )}
                       <div className="assignment-panel">
                         <strong>指派課程</strong>
                         <input
@@ -2585,15 +2980,45 @@ export default function Home() {
                       {!!course.assignments?.length && (
                         <div className="assignment-list">
                           {course.assignments.map((assignment) => (
-                            <span key={assignment.id}>
-                              <strong>{assignment.title}</strong>
-                              <small>
-                                {levelMeta[assignment.level].shortName} Day{" "}
-                                {assignment.day} · {assignment.dueDate} 截止 ·{" "}
-                                {assignment.completedCount ?? 0}/
-                                {assignment.totalStudents ?? 0} 人完成
-                              </small>
-                            </span>
+                            <article key={assignment.id} className="assignment-result-card">
+                              <div>
+                                <strong>{assignment.title}</strong>
+                                <small>
+                                  {levelMeta[assignment.level].shortName} Day{" "}
+                                  {assignment.day} · {assignment.dueDate} 截止
+                                </small>
+                              </div>
+                              <div className="assignment-metrics">
+                                <span>{assignment.completedCount ?? 0}/{assignment.totalStudents ?? 0} 完成</span>
+                                <span>平均 {assignment.averageScore ?? "—"} 分</span>
+                                <span>{assignment.lateCount ?? 0} 人遲交</span>
+                                <span>{assignment.overdueCount ?? 0} 人逾期未交</span>
+                              </div>
+                              {!!assignment.results?.length && (
+                                <details>
+                                  <summary>查看學生結果</summary>
+                                  {assignment.results.map((result) => (
+                                    <p key={result.studentEmail}>
+                                      <b>{result.displayName ?? result.studentEmail}</b> ·
+                                      最佳 {result.bestScore} 分 · 重做 {result.redoCount} 次
+                                      {result.late ? " · 遲交" : " · 準時"}
+                                    </p>
+                                  ))}
+                                </details>
+                              )}
+                              <button
+                                className="danger-action"
+                                onClick={() =>
+                                  void removeClassResource(
+                                    "assignment",
+                                    course.code,
+                                    { id: assignment.id, label: `作業「${assignment.title}」` },
+                                  )
+                                }
+                              >
+                                刪除作業
+                              </button>
+                            </article>
                           ))}
                         </div>
                       )}
@@ -2682,6 +3107,11 @@ export default function Home() {
                             : membership.role === "parent"
                               ? "家長"
                               : "學生"}
+                          {membership.role !== "teacher" && (
+                            <button onClick={() => void leaveClass(membership.classCode)}>
+                              離開班級
+                            </button>
+                          )}
                         </span>
                       ))}
                     </div>
@@ -2700,9 +3130,36 @@ export default function Home() {
                           <strong>{assignment.title}</strong>
                           <small>
                             {levelMeta[assignment.level].shortName} Day{" "}
-                            {assignment.day} · 開始任務 →
+                            {assignment.day} · {assignment.result
+                              ? `已完成 ${assignment.result.bestScore} 分 · 重做 ${assignment.result.redoCount} 次${assignment.result.late ? " · 遲交" : ""}`
+                              : new Date().toISOString().slice(0, 10) > assignment.dueDate
+                                ? "已逾期 · 點此補交"
+                                : "尚未完成"} →
                           </small>
                         </button>
+                      ))}
+                    </div>
+                  )}
+                  {profileRole === "parent" && !!linkedStudents.length && (
+                    <div className="linked-student-list">
+                      <h3>我的孩子學習報告</h3>
+                      {linkedStudents.map((student) => (
+                        <article key={`${student.classCode}-${student.email}`}>
+                          <span>班級 {student.classCode}</span>
+                          <strong>{student.displayName}</strong>
+                          <p>
+                            完成 {student.progress}% · {student.minutes} 分鐘 ·
+                            錯題 {student.mistakes}
+                          </p>
+                          {!!student.recentMistakes?.length && (
+                            <small>
+                              最近需要協助：
+                              {student.recentMistakes
+                                .map((mistake) => `Day ${mistake.day} ${mistake.kicker}`)
+                                .join("、")}
+                            </small>
+                          )}
+                        </article>
                       ))}
                     </div>
                   )}
@@ -2718,6 +3175,13 @@ export default function Home() {
               <button className="back-button" onClick={() => navigate("map")}>
                 ← 返回星圖
               </button>
+              <button
+                className="lesson-link-button"
+                onClick={() => void copyLessonLink()}
+              >
+                ⛓ 複製目前學習位置
+              </button>
+              {reportStatus && <small className="lesson-link-status">{reportStatus}</small>}
               <p>DAY {String(activeDay).padStart(2, "0")}</p>
               <h2>{lesson.title}</h2>
               <span>{lesson.minutes}</span>
@@ -2727,6 +3191,7 @@ export default function Home() {
                     key={stage.name}
                     className={activeStage === index ? "stage-active" : ""}
                     onClick={() => setActiveStage(index)}
+                    disabled={recordingState === "recording" && index !== 3}
                   >
                     <i>{stage.icon}</i>
                     <span>
@@ -3008,12 +3473,29 @@ export default function Home() {
                       ) : (
                         <button
                           className="reveal-answer-button"
-                          onClick={() =>
+                          onClick={() => {
                             setRevealedAnswers((current) => ({
                               ...current,
                               [currentExerciseKey]: true,
-                            }))
-                          }
+                            }));
+                            setHintUsage((current) => ({
+                              ...current,
+                              [currentExerciseKey]: 3,
+                            }));
+                            setDetailedMistakes((current) => {
+                              const previous = current[currentExerciseKey];
+                              return previous
+                                ? {
+                                    ...current,
+                                    [currentExerciseKey]: {
+                                      ...previous,
+                                      hintLevel: 3,
+                                      updatedAt: new Date().toISOString(),
+                                    },
+                                  }
+                                : current;
+                            });
+                          }}
                         >
                           我需要看完整答案與解析
                         </button>
@@ -3095,14 +3577,68 @@ export default function Home() {
                       ◌ 慢速跟讀
                     </button>
                   </div>
+                  <section className="pronunciation-lab" aria-label="發音錄音練習">
+                    <div>
+                      <p className="card-kicker">PRIVATE RECORDING</p>
+                      <h3>錄下來，和示範音比較</h3>
+                      <p>按下錄音才會要求麥克風權限；錄音只留在這個頁面，不會上傳。</p>
+                    </div>
+                    <div className="recording-actions">
+                      {recordingState !== "recording" ? (
+                        <button onClick={() => void startRecording()}>
+                          ● 開始錄音
+                        </button>
+                      ) : (
+                        <button className="recording-live" onClick={stopRecording}>
+                          ■ 停止錄音
+                        </button>
+                      )}
+                      {recordingUrl && (
+                        <button onClick={clearRecording}>重新錄一次</button>
+                      )}
+                    </div>
+                    {recordingUrl && (
+                      <>
+                        <audio controls src={recordingUrl}>
+                          你的瀏覽器不支援錄音播放。
+                        </audio>
+                        <fieldset className="pronunciation-rating">
+                          <legend>聽完後自評：音節、節奏和句尾有多接近？</legend>
+                          {[1, 2, 3].map((rating) => (
+                            <button
+                              type="button"
+                              key={rating}
+                              className={pronunciationRating === rating ? "active" : ""}
+                              aria-pressed={pronunciationRating === rating}
+                              onClick={() => setPronunciationRating(rating)}
+                            >
+                              {"★".repeat(rating)} {rating === 1 ? "再練一次" : rating === 2 ? "大致接近" : "清楚完整"}
+                            </button>
+                          ))}
+                        </fieldset>
+                      </>
+                    )}
+                    {recordingState === "denied" && (
+                      <p role="alert">無法使用麥克風。請在瀏覽器網站設定允許後再試一次。</p>
+                    )}
+                    {recordingState === "unsupported" && (
+                      <p role="status">這個瀏覽器不支援頁面錄音，仍可使用示範音跟讀。</p>
+                    )}
+                  </section>
                   <p className="privacy-note">
-                    固定語音檔可在各裝置保持一致；播放不會錄音或上傳資料。
+                    固定語音檔可在各裝置保持一致；錄音不會加入學習同步或班級報告。
                   </p>
                   <button
                     className="primary-button"
                     onClick={() => setActiveStage(4)}
+                    disabled={
+                      recordingState === "recording" ||
+                      (recordingUrl !== "" && pronunciationRating === 0)
+                    }
                   >
-                    我跟讀完成了 →
+                    {recordingUrl && pronunciationRating === 0
+                      ? "請先完成發音自評"
+                      : "我跟讀完成了 →"}
                   </button>
                 </div>
               )}
@@ -3222,7 +3758,7 @@ export default function Home() {
                   onClick={() =>
                     setActiveStage((stage) => Math.max(0, stage - 1))
                   }
-                  disabled={activeStage === 0}
+                  disabled={activeStage === 0 || recordingState === "recording"}
                 >
                   ← 上一階段
                 </button>
@@ -3235,7 +3771,10 @@ export default function Home() {
                       Math.min(stages.length - 1, stage + 1),
                     )
                   }
-                  disabled={activeStage === stages.length - 1}
+                  disabled={
+                    activeStage === stages.length - 1 ||
+                    recordingState === "recording"
+                  }
                 >
                   下一階段 →
                 </button>
