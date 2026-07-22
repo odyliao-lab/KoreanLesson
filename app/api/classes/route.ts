@@ -55,6 +55,22 @@ export async function GET() {
                 completedAdvancedDays?: unknown[];
                 studySessions?: { minutes?: number; completedAt?: string }[];
                 mistakes?: Record<string, number>;
+                detailedMistakes?: Record<
+                  string,
+                  {
+                    key?: string;
+                    level?: string;
+                    day?: number;
+                    exerciseId?: string;
+                    kicker?: string;
+                    question?: string;
+                    submittedAnswer?: string;
+                    correctAnswer?: string;
+                    attempts?: number;
+                    resolved?: boolean;
+                    updatedAt?: string;
+                  }
+                >;
               };
               const completed =
                 (data.completedDays?.length ?? 0) +
@@ -70,18 +86,63 @@ export async function GET() {
                 0,
               );
               lastActive = data.studySessions?.[0]?.completedAt ?? null;
+              const completedKeys = [
+                ...(data.completedDays ?? []).map((day) => `beginner-${day}`),
+                ...(data.completedIntermediateDays ?? []).map(
+                  (day) => `intermediate-${day}`,
+                ),
+                ...(data.completedAdvancedDays ?? []).map(
+                  (day) => `advanced-${day}`,
+                ),
+              ];
+              const recentMistakes = Object.values(
+                data.detailedMistakes ?? {},
+              )
+                .filter((item) => !item.resolved)
+                .sort((a, b) =>
+                  (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""),
+                )
+                .slice(0, 5);
+              return {
+                ...member,
+                progress,
+                minutes,
+                mistakes,
+                lastActive,
+                completedKeys,
+                recentMistakes,
+              };
             } catch {
               // A damaged payload should not block the rest of the roster.
             }
           }
-          return { ...member, progress, minutes, mistakes, lastActive };
+          return {
+            ...member,
+            progress,
+            minutes,
+            mistakes,
+            lastActive,
+            completedKeys: [] as string[],
+            recentMistakes: [] as unknown[],
+          };
         }),
       );
       const courseAssignments = await db
         .select()
         .from(assignments)
         .where(eq(assignments.classCode, course.code));
-      return { ...course, members: summaries, assignments: courseAssignments };
+      const assignmentResults = courseAssignments.map((assignment) => {
+        const students = summaries.filter((member) => member.role === "student");
+        const completionKey = `${assignment.level}-${assignment.day}`;
+        return {
+          ...assignment,
+          completedCount: students.filter((member) =>
+            member.completedKeys.includes(completionKey),
+          ).length,
+          totalStudents: students.length,
+        };
+      });
+      return { ...course, members: summaries, assignments: assignmentResults };
     }),
   );
   const memberAssignments = await Promise.all(

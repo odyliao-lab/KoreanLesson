@@ -217,10 +217,23 @@ function addLearningSupport(
     },
   };
   const support = supportByKind[exercise.kind];
+  const cardName = relatedCard
+    ? `字卡「${relatedCard.char}」`
+    : `Day ${lesson.day} 教材`;
+  const explanationByKind: Record<ExerciseKind, string> = {
+    choice: `題目「${lesson.question}」的正確答案是「${exercise.answer}」。這一題直接檢查 Day ${lesson.day} 今日教學的規則；重新對照題目關鍵字與正確選項，就能排除其餘不符合規則的寫法。`,
+    match: `${cardName}下方的完整韓文是「${exercise.answer}」，中文／發音提示是「${cardHint}」。作答時要把字卡、完整例詞或例句與提示一起記住。`,
+    listen: `固定語音的完整內容是「${exercise.answer}」。先辨認開頭音節，再核對中間詞語和句尾，三個部分都一致才是完整答案。`,
+    order: `正確排列是「${exercise.answer}」。韓文要先確認助詞所屬的名詞，再把動詞或句尾放在句末；不能直接照中文順序排列。`,
+    fill: `${cardName}的完整韓文寫法是「${exercise.answer}」，提示為「${cardHint}」。請逐音節核對母音、子音與詞間空格，不能只輸入其中一部分。`,
+    correction: `${cardName}應與「${exercise.answer}」配對，提示為「${cardHint}」。校對時要逐個音節比較，而不是只看整體外形是否相似。`,
+    translation: `提示「${cardHint}」對應的完整韓文是「${exercise.answer}」。先找出表達核心意思的單字，再確認助詞與句尾是否讓整句意思完整。`,
+    dictation: `固定語音的完整聽寫是「${exercise.answer}」。標點不計分，合理的詞間空格差異也會接受；音節與句尾仍必須完整。`,
+  };
   return {
     ...exercise,
     hintSteps: support.hints,
-    explanation: `正確答案是「${exercise.answer}」。這題練習的是${support.focus}；請把答案和題目提示重新對照一次。`,
+    explanation: explanationByKind[exercise.kind],
     acceptedAnswers: acceptedVariants(exercise),
     commonMistake: support.mistake,
     teacherTip: support.teacher,

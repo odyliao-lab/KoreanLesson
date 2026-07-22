@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export const metadata = {
   title: "隱私與資料說明｜별빛韓語研究所",
 };
@@ -5,7 +7,7 @@ export const metadata = {
 export default function PrivacyPage() {
   return (
     <main className="privacy-page">
-      <a href="/">← 返回韓語研究所</a>
+      <Link href="/">← 返回韓語研究所</Link>
       <p className="eyebrow">PRIVACY & DATA</p>
       <h1>隱私與資料說明</h1>
       <section>
@@ -44,9 +46,9 @@ export default function PrivacyPage() {
           網站角色與星空世界觀為原創虛構內容，非任何藝人、團體或娛樂公司的官方作品，也不使用官方照片、標誌或角色。
         </p>
       </section>
-      <a className="primary-button privacy-return" href="/">
+      <Link className="primary-button privacy-return" href="/">
         回到學習首頁
-      </a>
+      </Link>
     </main>
   );
 }

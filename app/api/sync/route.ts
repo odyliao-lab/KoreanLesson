@@ -39,6 +39,8 @@ export async function POST(request: Request) {
     data?: unknown;
     role?: string;
     classCode?: string | null;
+    baseUpdatedAt?: string | null;
+    force?: boolean;
   };
   const payload = JSON.stringify(body.data ?? {});
   if (payload.length > 250_000) {
@@ -51,6 +53,34 @@ export async function POST(request: Request) {
   const classCode = body.classCode?.trim().toUpperCase().slice(0, 12) || null;
   const now = new Date();
   const db = getDb();
+  const [existing] = await db
+    .select()
+    .from(learningProfiles)
+    .where(eq(learningProfiles.email, user.email))
+    .limit(1);
+  const baseUpdatedAt = body.baseUpdatedAt
+    ? new Date(body.baseUpdatedAt).getTime()
+    : Number.NaN;
+  if (
+    existing &&
+    !body.force &&
+    (!Number.isFinite(baseUpdatedAt) ||
+      existing.updatedAt.getTime() > baseUpdatedAt)
+  ) {
+    return Response.json(
+      {
+        error: "雲端已有較新的學習資料，請先載入或確認覆蓋。",
+        conflict: true,
+        profile: {
+          role: existing.role,
+          classCode: existing.classCode,
+          data: JSON.parse(existing.payload),
+          updatedAt: existing.updatedAt,
+        },
+      },
+      { status: 409 },
+    );
+  }
   await db
     .insert(learningProfiles)
     .values({
@@ -73,4 +103,16 @@ export async function POST(request: Request) {
     });
 
   return Response.json({ ok: true, updatedAt: now.toISOString() });
+}
+
+export async function DELETE() {
+  const user = await getChatGPTUser();
+  if (!user) {
+    return Response.json({ error: "請先登入後再刪除。" }, { status: 401 });
+  }
+  const db = getDb();
+  await db
+    .delete(learningProfiles)
+    .where(eq(learningProfiles.email, user.email));
+  return Response.json({ ok: true });
 }

@@ -22,7 +22,19 @@ test("keeps public learning and privacy routes product-specific", async () => {
 });
 
 test("keeps curriculum, sync, accessibility and offline contracts intact", async () => {
-  const [page, exercises, intermediate, advanced, schema, manifest, worker] =
+  const [
+    page,
+    exercises,
+    intermediate,
+    advanced,
+    schema,
+    manifest,
+    worker,
+    syncRoute,
+    classRoute,
+    reportRoute,
+    ci,
+  ] =
     await Promise.all([
       readFile(new URL("app/page.tsx", root), "utf8"),
       readFile(new URL("app/learning-exercises.ts", root), "utf8"),
@@ -31,6 +43,10 @@ test("keeps curriculum, sync, accessibility and offline contracts intact", async
       readFile(new URL("db/schema.ts", root), "utf8"),
       readFile(new URL("public/manifest.webmanifest", root), "utf8"),
       readFile(new URL("public/service-worker.js", root), "utf8"),
+      readFile(new URL("app/api/sync/route.ts", root), "utf8"),
+      readFile(new URL("app/api/classes/route.ts", root), "utf8"),
+      readFile(new URL("app/api/question-reports/route.ts", root), "utf8"),
+      readFile(new URL(".github/workflows/ci.yml", root), "utf8"),
     ]);
 
   assert.equal((intermediate.match(/^\s{4}day:\s*\d+,/gm) ?? []).length, 15);
@@ -43,6 +59,9 @@ test("keeps curriculum, sync, accessibility and offline contracts intact", async
   assert.match(page, /家長／老師協助/);
   assert.match(page, /skip-link/);
   assert.match(page, /syncToCloud/);
+  assert.match(page, /syncConflict/);
+  assert.match(page, /班級題目回報中心/);
+  assert.match(page, /\/api\/question-reports/);
   for (const kind of [
     "choice",
     "match",
@@ -59,6 +78,16 @@ test("keeps curriculum, sync, accessibility and offline contracts intact", async
   assert.match(page, /playFixedAudio/);
   assert.match(schema, /learningProfiles/);
   assert.match(schema, /classMembers/);
+  assert.match(schema, /questionReports/);
+  assert.match(syncRoute, /baseUpdatedAt/);
+  assert.match(syncRoute, /force/);
+  assert.match(syncRoute, /status: 409/);
+  assert.match(syncRoute, /export async function DELETE/);
+  assert.match(classRoute, /recentMistakes/);
+  assert.match(classRoute, /completedCount/);
+  assert.match(reportRoute, /export async function PATCH/);
+  assert.match(ci, /npm run lint/);
+  assert.match(ci, /npm test/);
   assert.equal(JSON.parse(manifest).display, "standalone");
   assert.match(worker, /CACHE_NAME/);
 });

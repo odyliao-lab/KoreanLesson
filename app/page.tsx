@@ -1,5 +1,9 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element -- Vinext serves these fixed local WebP portraits directly. */
+/* eslint-disable react-hooks/set-state-in-effect -- Browser-only localStorage hydration must run after mount. */
+/* eslint-disable react-hooks/exhaustive-deps -- Class refresh is intentionally keyed to the active view and authenticated user. */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   intermediateDayTitles,
@@ -44,10 +48,29 @@ type QuestionReport = {
   level: Level;
   day: number;
   exerciseId: string;
+  kicker: string;
   question: string;
   submittedAnswer: string;
   expectedAnswer: string;
   createdAt: string;
+};
+
+type TeacherQuestionReport = {
+  id: number;
+  classCode: string | null;
+  reporterEmail: string;
+  reporterName: string;
+  level: Level;
+  day: number;
+  exerciseId: string;
+  kicker: string;
+  question: string;
+  submittedAnswer: string;
+  expectedAnswer: string;
+  status: "open" | "reviewing" | "resolved";
+  resolutionNote: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type SessionUser = {
@@ -67,6 +90,8 @@ type CloudClass = {
     minutes?: number;
     mistakes?: number;
     lastActive?: string | null;
+    completedKeys?: string[];
+    recentMistakes?: Array<Partial<DetailedMistake>>;
   }[];
   assignments?: ClassAssignment[];
 };
@@ -78,6 +103,8 @@ type ClassAssignment = {
   level: Level;
   day: number;
   dueDate: string;
+  completedCount?: number;
+  totalStudents?: number;
 };
 
 type Lesson = {
@@ -825,6 +852,9 @@ export default function Home() {
     Record<string, DetailedMistake>
   >({});
   const [questionReports, setQuestionReports] = useState<QuestionReport[]>([]);
+  const [teacherQuestionReports, setTeacherQuestionReports] = useState<
+    TeacherQuestionReport[]
+  >([]);
   const [reportStatus, setReportStatus] = useState("");
   const [showCardHints, setShowCardHints] = useState(true);
   const [notes, setNotes] = useState<Record<string, string>>({});
@@ -836,6 +866,8 @@ export default function Home() {
   const [syncStatus, setSyncStatus] = useState(
     "免登入模式：資料保存在這台裝置",
   );
+  const [cloudUpdatedAt, setCloudUpdatedAt] = useState<string | null>(null);
+  const [syncConflict, setSyncConflict] = useState(false);
   const [profileRole, setProfileRole] = useState<
     "student" | "teacher" | "parent"
   >("student");
@@ -1389,12 +1421,13 @@ export default function Home() {
       setStudySessions(data.studySessions as StudySession[]);
   }
 
-  function markQuestionIssue() {
+  async function markQuestionIssue() {
     const report: QuestionReport = {
       key: `${currentExerciseKey}-${Date.now()}`,
       level: activeLevel,
       day: activeDay,
       exerciseId: currentExercise.id,
+      kicker: currentExercise.kicker,
       question: currentExercise.question,
       submittedAnswer: selectedAnswer || draftAnswer || "尚未作答",
       expectedAnswer: currentExercise.answer,
@@ -1402,6 +1435,29 @@ export default function Home() {
     };
     setQuestionReports((current) => [report, ...current].slice(0, 100));
     setReportStatus("已在這台裝置標記此題。");
+    const targetClassCode = classCode || memberships[0]?.classCode || "";
+    if (user && targetClassCode) {
+      const response = await fetch("/api/question-reports", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          classCode: targetClassCode,
+          level: activeLevel,
+          day: activeDay,
+          exerciseId: currentExercise.id,
+          kicker: currentExercise.kicker,
+          question: currentExercise.question,
+          submittedAnswer: report.submittedAnswer,
+          expectedAnswer: currentExercise.answer,
+        }),
+      });
+      const result = (await response.json()) as { error?: string };
+      setReportStatus(
+        response.ok
+          ? "已送到班級老師的題目回報中心。"
+          : result.error ?? "已保存在這台裝置。",
+      );
+    }
     const reportText = [
       "별빛韓語研究所題目回報",
       `階段：${activeLevel}`,
@@ -1413,8 +1469,11 @@ export default function Home() {
     ].join("\n");
     navigator.clipboard
       ?.writeText(reportText)
-      .then(() => setReportStatus("已標記並複製回報資料，可直接貼給老師。"))
-      .catch(() => setReportStatus("已在這台裝置標記此題。"));
+      .then(() => {
+        if (!user || !targetClassCode)
+          setReportStatus("已標記並複製回報資料，可直接貼給老師。");
+      })
+      .catch(() => undefined);
   }
 
   function exportLearningData() {
@@ -1456,7 +1515,7 @@ export default function Home() {
     setSyncStatus(`${levelMeta[activeLevel].shortName}進度已重設`);
   }
 
-  async function syncToCloud() {
+  async function syncToCloud(force = false) {
     if (!user) {
       window.location.href = "/signin-with-chatgpt?return_to=%2F";
       return;
@@ -1469,12 +1528,27 @@ export default function Home() {
         data: learningPayload(),
         role: profileRole,
         classCode,
+        baseUpdatedAt: cloudUpdatedAt,
+        force,
       }),
     });
-    const result = (await response.json()) as { error?: string };
-    setSyncStatus(
-      response.ok ? "雲端同步完成，可在其他裝置接續學習" : result.error ?? "同步失敗",
-    );
+    const result = (await response.json()) as {
+      error?: string;
+      conflict?: boolean;
+      updatedAt?: string;
+    };
+    if (response.status === 409 && result.conflict) {
+      setSyncConflict(true);
+      setSyncStatus(result.error ?? "雲端已有較新的進度");
+      return;
+    }
+    if (response.ok) {
+      setCloudUpdatedAt(result.updatedAt ?? new Date().toISOString());
+      setSyncConflict(false);
+      setSyncStatus("雲端同步完成，可在其他裝置接續學習");
+    } else {
+      setSyncStatus(result.error ?? "同步失敗");
+    }
   }
 
   async function loadFromCloud() {
@@ -1490,21 +1564,42 @@ export default function Home() {
         data?: Record<string, unknown>;
         role?: "student" | "teacher" | "parent";
         classCode?: string;
+        updatedAt?: string;
       } | null;
     };
     if (response.ok && result.profile?.data) {
       applyLearningPayload(result.profile.data);
       if (result.profile.role) setProfileRole(result.profile.role);
       if (result.profile.classCode) setClassCode(result.profile.classCode);
+      setCloudUpdatedAt(result.profile.updatedAt ?? new Date().toISOString());
+      setSyncConflict(false);
       setSyncStatus("已載入雲端進度");
     } else {
       setSyncStatus(result.error ?? "目前沒有雲端進度");
     }
   }
 
+  async function deleteCloudLearningData() {
+    if (!user) return;
+    if (!window.confirm("確定刪除雲端學習進度嗎？這台裝置的本機資料會保留。"))
+      return;
+    const response = await fetch("/api/sync", { method: "DELETE" });
+    const result = (await response.json()) as { error?: string };
+    if (response.ok) {
+      setCloudUpdatedAt(null);
+      setSyncConflict(false);
+      setSyncStatus("雲端學習資料已刪除；本機資料仍保留");
+    } else {
+      setSyncStatus(result.error ?? "無法刪除雲端資料");
+    }
+  }
+
   async function refreshClasses() {
     if (!user) return;
-    const response = await fetch("/api/classes");
+    const [response, reportResponse] = await Promise.all([
+      fetch("/api/classes"),
+      fetch("/api/question-reports"),
+    ]);
     const result = (await response.json()) as {
       owned?: CloudClass[];
       memberships?: { classCode: string; role: string }[];
@@ -1517,6 +1612,33 @@ export default function Home() {
       setAssignments(result.assignments ?? []);
     } else {
       setSyncStatus(result.error ?? "無法讀取班級");
+    }
+    if (reportResponse.ok) {
+      const reportResult = (await reportResponse.json()) as {
+        reports?: TeacherQuestionReport[];
+      };
+      setTeacherQuestionReports(reportResult.reports ?? []);
+    }
+  }
+
+  async function updateQuestionReport(
+    id: number,
+    status: TeacherQuestionReport["status"],
+  ) {
+    const response = await fetch("/api/question-reports", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    });
+    if (response.ok) {
+      setTeacherQuestionReports((current) =>
+        current.map((report) =>
+          report.id === id ? { ...report, status } : report,
+        ),
+      );
+    } else {
+      const result = (await response.json()) as { error?: string };
+      setSyncStatus(result.error ?? "無法更新題目回報");
     }
   }
 
@@ -2179,10 +2301,22 @@ export default function Home() {
                       }
                     />
                   </label>
-                  <button onClick={syncToCloud}>
+                  <button onClick={() => void syncToCloud()}>
                     {user ? "同步到雲端" : "登入並同步"}
                   </button>
-                  {user && <button onClick={loadFromCloud}>載入雲端進度</button>}
+                  {user && (
+                    <button onClick={() => void loadFromCloud()}>
+                      載入雲端進度
+                    </button>
+                  )}
+                  {user && (
+                    <button
+                      className="danger-action"
+                      onClick={() => void deleteCloudLearningData()}
+                    >
+                      刪除雲端進度
+                    </button>
+                  )}
                   <button
                     aria-pressed={highContrast}
                     onClick={() => setHighContrast((enabled) => !enabled)}
@@ -2196,6 +2330,18 @@ export default function Home() {
                     重設目前階段
                   </button>
                 </div>
+                {syncConflict && (
+                  <div className="sync-conflict" role="alert">
+                    <strong>偵測到另一台裝置的較新進度</strong>
+                    <p>先載入雲端資料最安全；確認本機資料較新時才覆蓋。</p>
+                    <button onClick={() => void loadFromCloud()}>
+                      先載入雲端
+                    </button>
+                    <button onClick={() => void syncToCloud(true)}>
+                      確認以本機覆蓋
+                    </button>
+                  </div>
+                )}
               </article>
             </div>
           </section>
@@ -2267,8 +2413,21 @@ export default function Home() {
                         <option value="parent">家長</option>
                       </select>
                     </label>
-                    <button onClick={syncToCloud}>保存身分與進度</button>
+                    <button onClick={() => void syncToCloud()}>
+                      保存身分與進度
+                    </button>
                     <p>{syncStatus}</p>
+                    {syncConflict && (
+                      <div className="sync-conflict compact" role="alert">
+                        <strong>雲端已有較新資料</strong>
+                        <button onClick={() => void loadFromCloud()}>
+                          載入雲端
+                        </button>
+                        <button onClick={() => void syncToCloud(true)}>
+                          以本機覆蓋
+                        </button>
+                      </div>
+                    )}
                   </article>
 
                   {profileRole === "teacher" ? (
@@ -2339,10 +2498,43 @@ export default function Home() {
                                   : "學生"}
                             </small>
                             {member.role === "student" && (
-                              <small>
-                                {member.progress ?? 0}% · {member.minutes ?? 0}{" "}
-                                分鐘 · 錯題 {member.mistakes ?? 0}
-                              </small>
+                              <>
+                                <small>
+                                  {member.progress ?? 0}% · {member.minutes ?? 0}{" "}
+                                  分鐘 · 錯題 {member.mistakes ?? 0}
+                                </small>
+                                <div className="student-diagnostics">
+                                  {!!course.assignments?.length && (
+                                    <p>
+                                      已完成指派：
+                                      {
+                                        course.assignments.filter((assignment) =>
+                                          member.completedKeys?.includes(
+                                            `${assignment.level}-${assignment.day}`,
+                                          ),
+                                        ).length
+                                      }
+                                      /{course.assignments.length}
+                                    </p>
+                                  )}
+                                  {!!member.recentMistakes?.length && (
+                                    <details>
+                                      <summary>
+                                        最近 {member.recentMistakes.length} 題需協助
+                                      </summary>
+                                      {member.recentMistakes.map((mistake) => (
+                                        <p key={mistake.key}>
+                                          Day {mistake.day} · {mistake.kicker}
+                                          <br />
+                                          <b>學生：</b>{mistake.submittedAnswer}
+                                          <br />
+                                          <b>答案：</b>{mistake.correctAnswer}
+                                        </p>
+                                      ))}
+                                    </details>
+                                  )}
+                                </div>
+                              </>
                             )}
                           </span>
                         ))}
@@ -2397,7 +2589,9 @@ export default function Home() {
                               <strong>{assignment.title}</strong>
                               <small>
                                 {levelMeta[assignment.level].shortName} Day{" "}
-                                {assignment.day} · {assignment.dueDate} 截止
+                                {assignment.day} · {assignment.dueDate} 截止 ·{" "}
+                                {assignment.completedCount ?? 0}/
+                                {assignment.totalStudents ?? 0} 人完成
                               </small>
                             </span>
                           ))}
@@ -2409,6 +2603,74 @@ export default function Home() {
                     <p className="empty-class">
                       尚未建立或加入班級。班級只顯示成員名稱與身分，不會公開自習筆記。
                     </p>
+                  )}
+                  {profileRole === "teacher" && (
+                    <article className="question-report-inbox">
+                      <div className="mistake-card-head">
+                        <div>
+                          <p>QUESTION REVIEW</p>
+                          <h2>班級題目回報中心</h2>
+                        </div>
+                        <span>
+                          {
+                            teacherQuestionReports.filter(
+                              (report) => report.status !== "resolved",
+                            ).length
+                          }{" "}
+                          待處理
+                        </span>
+                      </div>
+                      {teacherQuestionReports.length ? (
+                        <div className="question-report-list">
+                          {teacherQuestionReports.map((report) => (
+                            <article key={report.id}>
+                              <div>
+                                <span>
+                                  {report.classCode} · Day {report.day} ·{" "}
+                                  {report.kicker}
+                                </span>
+                                <strong>{report.question}</strong>
+                                <small>
+                                  {report.reporterName} · 學生答案：
+                                  {report.submittedAnswer}
+                                </small>
+                                <small>系統答案：{report.expectedAnswer}</small>
+                              </div>
+                              <div className="report-status-actions">
+                                <button
+                                  className={
+                                    report.status === "reviewing" ? "active" : ""
+                                  }
+                                  onClick={() =>
+                                    void updateQuestionReport(
+                                      report.id,
+                                      "reviewing",
+                                    )
+                                  }
+                                >
+                                  審閱中
+                                </button>
+                                <button
+                                  className={
+                                    report.status === "resolved" ? "active" : ""
+                                  }
+                                  onClick={() =>
+                                    void updateQuestionReport(
+                                      report.id,
+                                      "resolved",
+                                    )
+                                  }
+                                >
+                                  已處理
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mistake-empty">目前沒有班級題目回報。</p>
+                      )}
+                    </article>
                   )}
                   {!!memberships.length && (
                     <div className="membership-list">

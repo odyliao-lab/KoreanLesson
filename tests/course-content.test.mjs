@@ -161,6 +161,21 @@ test("audits all 50 custom questions and 400 generated exercises for clear answe
         assert.equal(exercise.hintSteps.length, 2);
         exercise.hintSteps.forEach((hint) => assert.ok(hint.trim()));
         assert.ok(exercise.explanation.includes(exercise.answer));
+        assert.doesNotMatch(
+          exercise.explanation,
+          /這題練習的是.+請把答案/,
+          `${level} Day ${lesson.day} ${exercise.kind}: generic explanation remained`,
+        );
+        if (exercise.kind === "choice") {
+          assert.match(exercise.explanation, new RegExp(`Day ${lesson.day}`));
+          assert.ok(exercise.explanation.includes(lesson.question));
+        }
+        if (["match", "fill", "correction"].includes(exercise.kind)) {
+          assert.match(exercise.explanation, /字卡「.+」/);
+        }
+        if (["listen", "dictation"].includes(exercise.kind)) {
+          assert.match(exercise.explanation, /固定語音/);
+        }
         assert.ok(exercise.acceptedAnswers.includes(exercise.answer));
         assert.ok(exercise.commonMistake.trim());
         assert.ok(exercise.teacherTip.trim());
